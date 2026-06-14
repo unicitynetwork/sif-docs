@@ -7,9 +7,9 @@ The Detectors page (`/detectors`) is split into two sections: the detector adapt
 
 ## What you see
 
-### Detectors section
+### Pattern Based Detectors section
 
-Backed by `GET /manage/detectors`. Each row:
+Lists the rule and pattern based detectors available. Backed by `GET /manage/detectors`. Each row:
 
 | Column | Meaning |
 |---|---|
@@ -21,9 +21,9 @@ Backed by `GET /manage/detectors`. Each row:
 
 Click a row to see the detector's configuration: which rule files it loaded, which model it points at, its score-emission semantics (per-message vs. per-content), and any per-detector overrides.
 
-### Models section
+### Model Based Detectors section
 
-Backed by `GET /manage/models`. ML models are loaded into memory at startup or on demand.
+Lists the ML based detectors available. Backed by `GET /manage/models`. ML models are loaded into memory at startup or on demand.
 
 | Column | Meaning |
 |---|---|
