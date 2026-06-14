@@ -1,9 +1,10 @@
-# Unicity-AOS9 User Guide
+# Unicity SIF Gateway User Guide v1-01
 
-Documentation for Unicity-AOS9 — a self-hosted LLM security gateway. Built
-with [Starlight](https://starlight.astro.build/) (Astro).
+The SIF Gateway is a request message classifier that enables deep scanning of content passed to and from users, agents, LLMs, tools, and from external activities (such as web scraping). The Gateway can be used to examine individual requests for suspicious content, such as jailbreak attempts, direct and indirect prompt injection, and data leakage. Different scanning policies can be defined and applied on a per request basis.
 
-> The product name **Unicity-AOS9** is a placeholder used consistently
+Built with [Starlight](https://starlight.astro.build/) (Astro).
+
+> Note: The term **Unicity-AOS9** is a placeholder used consistently
 > throughout this repo so it can be replaced via find-and-replace once the
 > final name is settled.
 
