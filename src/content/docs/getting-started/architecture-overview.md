@@ -1,7 +1,9 @@
 ---
 title: Architecture overview
-description: One diagram, three things to remember.
+description: One diagram, key concepts to remember.
 ---
+
+## Overview
 
 Unicity SIF Gateway is optimised to be memory efficient. Below are some key concepts to understand:
 
