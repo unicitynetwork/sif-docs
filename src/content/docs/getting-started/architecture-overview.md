@@ -3,11 +3,21 @@ title: Architecture overview
 description: One diagram, three things to remember.
 ---
 
-Unicity-AOS9 is small. Three things to understand:
+Unicity SIF Gateway is optimised to be memory efficient. Below are some key concepts to understand:
 
-1. The **request lifecycle** — how a single prompt flows through.
-2. The **detector taxonomy** — what kinds of checks run.
-3. The **policy boundary** — where the block / flag / allow decision happens.
+1. Gateway **deployment mode** — determines how policy enforcement is aplied
+2. The **request lifecycle** — how a single prompt flows through.
+3. The **detector taxonomy** — what kinds of checks run.
+4. The **policy boundary** — where the block / flag / allow decision happens.
+
+## Deployment mode
+
+SIF Gateway will be deployable in two modes, as an API request proxy, and as an Inline proxy:
+
+- SIF Gateway is deployed by default as an API callable proxy that returns a classification (and optionally may redact content). In this mode the API client decides how to enforce policy.
+- SIF Gateway may be deployed as an inline proxy, in which case policy enforcement is handled within the gateway.
+
+Note that Inline mode is not available in the MvP and is a roadmap item. Note also that load balancing is not supported in the MvP but will be fullly supported at GA.
 
 ## Request lifecycle
 
