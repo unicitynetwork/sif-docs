@@ -3,9 +3,15 @@ title: Policies
 description: How detector outputs become verdicts.
 ---
 
-A **policy** is the named bundle of behaviour that turns detector outputs into a verdict. Every API key is bound to exactly one policy. Multiple keys can share a policy.
+A **policy** is the named set of behaviour that turns detector outputs into a verdict. The primary use of a policy is to determine which detectors will be run, and in which order, when a new request is examined. A second objective is to score the detection signals into an unambiguous classifier verdict (e.g., block, modify, allow ...).
+
+- The request API call sets the policy ID to be used on an individual request (otherwise a default policy is assigned).
+- Every API key is bound to exactly one policy.
+- Multiple keys can share a policy.
 
 ## What a policy contains
+
+Note that the detector names mentioned below may change as new detectors are added/removed. Look at the detectors pane on the dashboard to see what detectors are available.
 
 ```toml
 [[policies]]
