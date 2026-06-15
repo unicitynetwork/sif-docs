@@ -3,6 +3,10 @@ title: Getting started
 description: Start here. Install Semantic Firewall, send your first guard call, and learn the mental model behind what the gateway is doing.
 ---
 
+:::tip[Testing with credentials we sent you?]
+Skip ahead to the [hosted dashboard](https://sif.unicity.network/dashboard) and use the API key we shared. The install and deployment steps below are for self-hosting, which we'll fully support in a future release.
+:::
+
 Start here. Install Semantic Firewall, send your first guard call, and learn the mental model behind what the gateway is doing.
 
 ## Pages in this section
