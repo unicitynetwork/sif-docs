@@ -9,6 +9,12 @@ pnpm-debug.log*
 dist/
 .astro/
 
+# Customer-deliverable packages (produced by `make package`)
+# Always live under dist/ already, but listed explicitly in case they get
+# moved or copied elsewhere in the tree.
+unicity-aos9-user-guide-*.zip
+unicity-aos9-user-guide-*.pdf
+
 # Build / cache
 .cache/
 .parcel-cache/
