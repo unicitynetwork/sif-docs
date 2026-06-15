@@ -1,14 +1,14 @@
 ---
 title: Integrate with an LLM app
-description: Wire Unicity-AOS9 into your application's prompt path.
+description: Wire Semantic Firewall into your application's prompt path.
 ---
 
-This guide walks through adding Unicity-AOS9 to an application that already calls an LLM provider. The result: every prompt is screened before it reaches the model, and your application reacts to the verdict.
+This guide walks through adding Semantic Firewall to an application that already calls an LLM provider. The result: every prompt is screened before it reaches the model, and your application reacts to the verdict.
 
 ## Where the gateway sits
 
 ```
-your application  →  Unicity-AOS9 guard  →  decide  →  LLM provider
+your application  →  Semantic Firewall guard  →  decide  →  LLM provider
                                               │
                                               └─ block / flag → return early
 ```

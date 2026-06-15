@@ -1,9 +1,9 @@
 ---
-title: What is Unicity-AOS9
+title: What is Semantic Firewall
 description: Product positioning, primary use cases, and what it is not.
 ---
 
-Unicity-AOS9 is an inline security gateway for LLM-powered applications. A single Rust service sits between your application and an LLM provider. Every prompt passes through it, is evaluated by a configurable detector pipeline, is matched against a per-API-key policy, and is either forwarded, flagged, or blocked.
+Semantic Firewall is an inline security gateway for LLM-powered applications. A single Rust service sits between your application and an LLM provider. Every prompt passes through it, is evaluated by a configurable detector pipeline, is matched against a per-API-key policy, and is either forwarded, flagged, or blocked.
 
 ## The problem it solves
 
@@ -14,7 +14,7 @@ LLM-based applications face a class of risks that traditional web security tools
 - **Data leakage** — sensitive content (PII, credentials, internal documents) appearing in either user input or model output.
 - **Policy drift** — detection rules and block thresholds that must change without redeploying applications.
 
-These risks are not naturally handled by application code. Unicity-AOS9 makes them a property of the gateway, not the app.
+These risks are not naturally handled by application code. Semantic Firewall makes them a property of the gateway, not the app.
 
 ## What it does
 
@@ -36,7 +36,7 @@ These risks are not naturally handled by application code. Unicity-AOS9 makes th
 - Not a fine-tuning or training platform.
 - Not a generic MLOps platform.
 
-Unicity-AOS9 is narrowly focused on the security boundary between an application and an LLM provider.
+Semantic Firewall is narrowly focused on the security boundary between an application and an LLM provider.
 
 ## Where to go next
 

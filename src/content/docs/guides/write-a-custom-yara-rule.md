@@ -3,7 +3,7 @@ title: Write a custom YARA rule
 description: Add a bespoke detection pattern in YARA-X.
 ---
 
-Unicity-AOS9 uses [YARA-X](https://virustotal.github.io/yara-x/) for its primary pattern-matching detector. Rules live as `.yar` files under the gateway's configured rules directory. New files are picked up automatically — no restart needed.
+Semantic Firewall uses [YARA-X](https://virustotal.github.io/yara-x/) for its primary pattern-matching detector. Rules live as `.yar` files under the gateway's configured rules directory. New files are picked up automatically — no restart needed.
 
 ## Anatomy of a rule
 

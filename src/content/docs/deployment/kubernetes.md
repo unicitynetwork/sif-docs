@@ -3,7 +3,7 @@ title: Kubernetes
 description: Helm chart and manifests — currently a roadmap item.
 ---
 
-> **Status: pending.** Unicity-AOS9 does not currently ship an official Helm chart or Kubernetes manifests. This page describes the intended approach for operators who want to deploy on Kubernetes today.
+> **Status: pending.** Semantic Firewall does not currently ship an official Helm chart or Kubernetes manifests. This page describes the intended approach for operators who want to deploy on Kubernetes today.
 
 For Kubernetes deployments today, the path is:
 

@@ -3,7 +3,7 @@ title: Postgres and Redis
 description: Persistence and ephemeral state — what the gateway needs.
 ---
 
-Unicity-AOS9 depends on two stateful services. Both are operationally undemanding; the schema and access patterns are designed to fit standard managed offerings.
+Semantic Firewall depends on two stateful services. Both are operationally undemanding; the schema and access patterns are designed to fit standard managed offerings.
 
 ## Postgres
 

@@ -3,7 +3,7 @@ title: Installation
 description: Prerequisites, building from source, and running locally with Docker.
 ---
 
-This page covers running Unicity-AOS9 locally for development or evaluation. For production deployment see [Deployment](../deployment/).
+This page covers running Semantic Firewall locally for development or evaluation. For production deployment see [Deployment](../deployment/).
 
 ## Prerequisites
 
@@ -23,7 +23,7 @@ Optional, for the ML detection feature:
 ## Install path A — Docker (fastest)
 
 ```bash
-docker run -p 8080:8080 -p 8081:8081 unicity-aos9/gateway:latest
+docker run -p 8080:8080 -p 8081:8081 semantic-firewall/gateway:latest
 ```
 
 Then call it:
@@ -42,8 +42,8 @@ The standalone image is fine for a smoke test. Anything more — persistence, th
 ## Install path B — Build from source
 
 ```bash
-git clone <your-unicity-aos9-repo>
-cd unicity-aos9
+git clone <your-semantic-firewall-repo>
+cd semantic-firewall
 
 # Bring up Postgres and Redis
 make dev

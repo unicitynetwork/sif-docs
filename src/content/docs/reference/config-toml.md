@@ -152,7 +152,7 @@ Nested arrays (like `[[policies]]`) cannot be overridden via env vars — edit t
 The gateway validates the config on startup. Errors print to stderr and the process exits without serving. Validate without starting the server:
 
 ```bash
-unicity-aos9 validate-config --config /path/to/config.toml
+semantic-firewall validate-config --config /path/to/config.toml
 ```
 
 ## Related

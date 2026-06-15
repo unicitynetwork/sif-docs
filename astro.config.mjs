@@ -80,7 +80,7 @@ export default defineConfig({
   },
   integrations: [
     starlight({
-      title: "Unicity-AOS9",
+      title: "Semantic Firewall",
       description:
         "Self-hosted LLM security gateway — detection, policy, threat review.",
       lastUpdated: true,

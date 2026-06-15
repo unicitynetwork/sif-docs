@@ -3,7 +3,7 @@ title: Python SDK
 description: The promptshield Python package — install, usage, and reference.
 ---
 
-A thin httpx-based wrapper for the Unicity-AOS9 HTTP API. Targets Python 3.9+.
+A thin httpx-based wrapper for the Semantic Firewall HTTP API. Targets Python 3.9+.
 
 ## Install
 

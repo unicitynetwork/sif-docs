@@ -1,9 +1,9 @@
 ---
 title: Operations
-description: Running Unicity-AOS9 day to day — auth, backups, upgrades, troubleshooting.
+description: Running Semantic Firewall day to day — auth, backups, upgrades, troubleshooting.
 ---
 
-Running Unicity-AOS9 day to day — auth, backups, upgrades, troubleshooting.
+Running Semantic Firewall day to day — auth, backups, upgrades, troubleshooting.
 
 ## Pages in this section
 

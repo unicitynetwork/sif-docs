@@ -3,7 +3,7 @@ title: Upgrades and migrations
 description: Safely moving from one gateway version to the next.
 ---
 
-Unicity-AOS9 follows additive schema migrations: a new release never removes or renames an existing column without a multi-release deprecation window. This means upgrades are forwards-compatible and rolling deploys are safe.
+Semantic Firewall follows additive schema migrations: a new release never removes or renames an existing column without a multi-release deprecation window. This means upgrades are forwards-compatible and rolling deploys are safe.
 
 ## The upgrade path
 

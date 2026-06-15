@@ -3,14 +3,14 @@ title: Docker Compose
 description: The reference production stack.
 ---
 
-The recommended way to run Unicity-AOS9 in production is the bundled Docker Compose file. It brings up the gateway, Postgres, and Redis with sensible defaults that are documented and overridable.
+The recommended way to run Semantic Firewall in production is the bundled Docker Compose file. It brings up the gateway, Postgres, and Redis with sensible defaults that are documented and overridable.
 
 ## What's in the stack
 
 ```yaml
 services:
   gateway:
-    image: unicity-aos9/gateway:0.4.1
+    image: semantic-firewall/gateway:0.4.1
     ports:
       - "8080:8080"     # HTTP API
       - "8081:8081"     # Dashboard

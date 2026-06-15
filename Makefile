@@ -1,8 +1,8 @@
-# Unicity-AOS9 User Guide — packaging targets
+# Semantic Firewall User Guide — packaging targets
 #
 # Produces customer-ready deliverables under dist/ (gitignored):
-#   - dist/unicity-aos9-user-guide-YYYY-MM-DD.zip   (static site, opens locally)
-#   - dist/unicity-aos9-user-guide-YYYY-MM-DD.pdf   (single PDF of all pages)
+#   - dist/semantic-firewall-user-guide-YYYY-MM-DD.zip   (static site, opens locally)
+#   - dist/semantic-firewall-user-guide-YYYY-MM-DD.pdf   (single PDF of all pages)
 #
 # Both formats are offline-friendly. The zip extracts to a folder; open
 # index.html in any browser — the full sidebar + client-side search works
@@ -14,7 +14,7 @@
 
 ROOT     := $(realpath $(dir $(firstword $(MAKEFILE_LIST))))
 DATE     := $(shell date +%Y-%m-%d)
-PACKAGE  := unicity-aos9-user-guide-$(DATE)
+PACKAGE  := semantic-firewall-user-guide-$(DATE)
 DIST     := $(ROOT)/dist
 ZIP      := $(DIST)/$(PACKAGE).zip
 PDF      := $(DIST)/$(PACKAGE).pdf
@@ -25,7 +25,7 @@ STAGE    := $(ROOT)/.zip-staging
 .PHONY: help install build zip pdf package clean
 
 help:
-	@echo "Unicity-AOS9 User Guide — make targets"
+	@echo "Semantic Firewall User Guide — make targets"
 	@echo
 	@echo "  install   First-time setup: npm install + playwright chromium"
 	@echo "            (chromium download is ~150 MB; only needed for PDF)"

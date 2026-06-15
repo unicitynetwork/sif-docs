@@ -28,7 +28,7 @@ Note that Inline mode is not available in the MvP and is a roadmap item. Note al
        │  POST /api/v1/guard
        │  Authorization: Bearer <api_key>
        ▼
-   Unicity-AOS9 gateway
+   Semantic Firewall gateway
        │  1. Validate API key → resolve policy
        │  2. Run the detector pipeline against the prompt:
        │       - regex rules (cheap)

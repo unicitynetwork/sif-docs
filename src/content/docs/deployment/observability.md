@@ -70,7 +70,7 @@ The gateway emits OpenTelemetry traces when configured. Set:
 
 ```env
 OTEL_EXPORTER_OTLP_ENDPOINT=https://collector.example.com:4317
-OTEL_SERVICE_NAME=unicity-aos9
+OTEL_SERVICE_NAME=semantic-firewall
 OTEL_TRACES_SAMPLER_ARG=0.1
 ```
 

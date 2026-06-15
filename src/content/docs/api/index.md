@@ -1,9 +1,9 @@
 ---
 title: HTTP API
-description: The REST and WebSocket interface to Unicity-AOS9. Endpoints are marked **beta** where the shape may change before the 1.0 release.
+description: The REST and WebSocket interface to Semantic Firewall. Endpoints are marked **beta** where the shape may change before the 1.0 release.
 ---
 
-The REST and WebSocket interface to Unicity-AOS9. Endpoints are marked **beta** where the shape may change before the 1.0 release.
+The REST and WebSocket interface to Semantic Firewall. Endpoints are marked **beta** where the shape may change before the 1.0 release.
 
 ## Pages in this section
 

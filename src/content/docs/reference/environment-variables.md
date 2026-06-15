@@ -15,7 +15,7 @@ Any key in `config.toml` can be overridden by an environment variable. This page
 | `REDIS_URL_FILE` | unset | Path to a file containing the URL |
 | `RUST_LOG` | `info` | Log level; supports per-module overrides, e.g. `info,promptshield::pipeline=debug` |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | unset | Enables OTLP trace export when set |
-| `OTEL_SERVICE_NAME` | `unicity-aos9` | Service name for traces |
+| `OTEL_SERVICE_NAME` | `semantic-firewall` | Service name for traces |
 | `OTEL_TRACES_SAMPLER_ARG` | `0.0` | Sample rate `[0, 1]` |
 
 ## Server

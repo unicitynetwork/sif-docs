@@ -14,8 +14,8 @@ dist/
 # Customer-deliverable packages (produced by `make package`)
 # Always live under dist/ already, but listed explicitly in case they get
 # moved or copied elsewhere in the tree.
-unicity-aos9-user-guide-*.zip
-unicity-aos9-user-guide-*.pdf
+semantic-firewall-user-guide-*.zip
+semantic-firewall-user-guide-*.pdf
 
 # Build / cache
 .cache/

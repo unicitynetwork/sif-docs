@@ -18,7 +18,7 @@ The gateway listens on plain HTTP by default — it does not terminate TLS itsel
 ## nginx
 
 ```nginx
-upstream unicity_aos9 {
+upstream semanticd {
     server gateway-1:8080;
     server gateway-2:8080;
     server gateway-3:8080;
@@ -33,7 +33,7 @@ server {
     ssl_protocols TLSv1.2 TLSv1.3;
 
     location /ws/events {
-        proxy_pass http://unicity_aos9;
+        proxy_pass http://semanticd;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -42,7 +42,7 @@ server {
     }
 
     location / {
-        proxy_pass http://unicity_aos9;
+        proxy_pass http://semanticd;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto https;

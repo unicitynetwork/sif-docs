@@ -4,7 +4,7 @@ The SIF Gateway is a request message classifier that enables deep scanning of co
 
 Built with [Starlight](https://starlight.astro.build/) (Astro).
 
-> Note: The term **Unicity-AOS9** is a placeholder used consistently
+> Note: The term **Semantic Firewall** is a placeholder used consistently
 > throughout this repo so it can be replaced via find-and-replace once the
 > final name is settled.
 
