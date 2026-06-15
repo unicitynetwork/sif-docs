@@ -22,7 +22,7 @@ PDF      := $(DIST)/$(PACKAGE).pdf
 # outside dist/ so the PDF target keeps using the unmodified build.
 STAGE    := $(ROOT)/.zip-staging
 
-.PHONY: help install build zip pdf package clean
+.PHONY: help install build zip pdf package release clean
 
 help:
 	@echo "Semantic Firewall User Guide — make targets"
@@ -33,6 +33,8 @@ help:
 	@echo "  zip       build + produce $(ZIP)"
 	@echo "  pdf       build + produce $(PDF)"
 	@echo "  package   build + both artefacts"
+	@echo "  release   tag + publish a GitHub Release of the current commit"
+	@echo "            using the semver in ./VERSION (edit + commit first)"
 	@echo "  clean     remove $(DIST)/"
 	@echo
 	@echo "Send the resulting .zip and .pdf to a customer — both artefacts are"
@@ -74,6 +76,13 @@ package: zip pdf
 	@echo
 	@echo "✓ customer deliverables ready:"
 	@ls -lh $(ZIP) $(PDF)
+
+# release delegates the heavy lifting to scripts/release.sh so the Makefile
+# stays declarative. The script reads ./VERSION, validates clean state,
+# rebuilds artefacts with version-stamped names, tags + pushes the commit,
+# and publishes a GitHub Release with the zip + pdf attached.
+release:
+	bash $(ROOT)/scripts/release.sh
 
 clean:
 	rm -rf $(DIST) $(STAGE)
