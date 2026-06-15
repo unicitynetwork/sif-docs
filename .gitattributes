@@ -1,0 +1,27 @@
+# Normalize line endings across platforms.
+#
+# Store every text file as LF in the repository AND check it out as LF on
+# every OS (this is a web project built and deployed on Linux). Declaring
+# the policy here makes it independent of each developer's core.autocrlf
+# setting, so Windows checkouts no longer introduce CRLF and trigger
+# spurious "LF will be replaced by CRLF" diffs.
+* text=auto eol=lf
+
+# Windows batch scripts must keep CRLF to execute correctly.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary assets — never apply any line-ending conversion.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.webp binary
+*.avif binary
+*.ico  binary
+*.woff  binary
+*.woff2 binary
+*.ttf  binary
+*.otf  binary
+*.eot  binary
+*.pdf  binary
