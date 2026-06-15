@@ -1,6 +1,8 @@
 ---
 title: What is Semantic Firewall
 description: Product positioning, primary use cases, and what it is not.
+sidebar:
+  order: 1
 ---
 
 Semantic Firewall is an inline security gateway for LLM-powered applications. A single Rust service sits between your application and an LLM provider. Every prompt passes through it, is evaluated by a configurable detector pipeline, is matched against a per-API-key policy, and is either forwarded, flagged, or blocked.

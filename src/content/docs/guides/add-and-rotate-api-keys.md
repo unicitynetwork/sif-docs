@@ -15,16 +15,16 @@ Every call to `/api/v1/guard` carries an API key. This page is the operator-side
    - **Expiry** — optional. Set it for short-lived integrations (e.g. a 7-day demo key) so the credential auto-revokes.
 3. Submit. The full secret is shown **once** on the success screen. Copy it now — it will never be shown again.
 
-A key looks like `ps_<32 random characters>`. It is presented to the gateway in either of two headers:
+A key looks like `semd_<32 random characters>`. It is presented to the gateway in either of two headers:
 
 ```
-Authorization: Bearer sk_a3f0...
+Authorization: Bearer semd_a3f0...
 ```
 
 or
 
 ```
-X-API-Key: ps_a3f0...
+X-API-Key: semd_a3f0...
 ```
 
 The two are equivalent. The Python SDK uses `X-API-Key`.

@@ -111,10 +111,12 @@ export default defineConfig({
         },
         {
           label: "Deployment",
+          badge: { text: "post-alpha", variant: "caution" },
           items: [{ autogenerate: { directory: "deployment" } }],
         },
         {
           label: "Operations",
+          badge: { text: "post-alpha", variant: "caution" },
           items: [{ autogenerate: { directory: "operations" } }],
         },
         {

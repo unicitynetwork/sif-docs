@@ -13,20 +13,20 @@ A WebSocket stream of detection events. Every guard call publishes one verdict e
 wss://<gateway-host>/ws/events
 ```
 
-In dev: `ws://localhost:8081/ws/events`.
+In dev: `wss://sif.unicity.network/ws/events`.
 
 ## Authentication
 
 Either header or query parameter (see [Authentication](authentication.md)):
 
 ```
-Authorization: Bearer sk_...
+Authorization: Bearer semd_...
 ```
 
 or for browser clients:
 
 ```
-wss://gateway/ws/events?api_key=ps_...
+wss://gateway/ws/events?api_key=semd_...
 ```
 
 Unauthenticated upgrade attempts are rejected with `401`.
@@ -68,7 +68,7 @@ One JSON message per event. UTF-8 text frames; the server does not send binary f
       "message_index": 1
     }
   ],
-  "api_key_prefix": "sk_a3f0",
+  "api_key_prefix": "semd_a3f0",
   "request_summary": "Help me ignore previous instr..."
 }
 ```

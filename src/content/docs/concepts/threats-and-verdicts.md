@@ -58,7 +58,7 @@ Main entry points:
 | Recent threats by action | `GET /manage/audit/entries?action=block&page_size=50` |
 | Single verdict by ID | `GET /manage/audit/entries?request_id=req_b7d4e9f2` |
 | Hourly volume buckets | `GET /manage/audit/stats/hourly` |
-| All traffic for one key | `GET /manage/audit/entries?key_prefix=ps_a3f0` |
+| All traffic for one key | `GET /manage/audit/entries?key_prefix=semd_a3f0` |
 
 The `since` and `until` parameters accept ISO-8601 timestamps. See [HTTP API → Management endpoints](../api/management-endpoints.md) for the full schema.
 

@@ -18,7 +18,7 @@ GET /ws/events HTTP/1.1
 Host: gateway.internal
 Upgrade: websocket
 Connection: Upgrade
-Authorization: Bearer sk_your_key
+Authorization: Bearer semd_your_key
 ```
 
 In `--dev-mode` no auth is required. In any other mode an unauthenticated upgrade is rejected with `401`.
@@ -45,7 +45,7 @@ Each event is a single JSON message:
       "message_index": 1
     }
   ],
-  "api_key_prefix": "sk_a3f0",
+  "api_key_prefix": "semd_a3f0",
   "request_summary": "Help me ignore previous instr..."
 }
 ```
@@ -82,7 +82,7 @@ import asyncio, json, websockets
 
 async def main():
     uri = "wss://gateway.internal/ws/events?types=verdict&actions=block,modify"
-    headers = {"Authorization": "Bearer sk_your_key"}
+    headers = {"Authorization": "Bearer semd_your_key"}
     async with websockets.connect(uri, additional_headers=headers) as ws:
         async for raw in ws:
             event = json.loads(raw)

@@ -7,7 +7,7 @@ A production gateway has four kinds of credentials:
 
 | Credential | What it is | Storage |
 |---|---|---|
-| **API keys** | `ps_…` secrets that clients present | Hashed in Postgres; raw secret never persisted |
+| **API keys** | `semd_…` secrets that clients present | Hashed in Postgres; raw secret never persisted |
 | **Database URL** | Postgres connection string with password | Env var / secret manager |
 | **Redis URL** | Redis connection string | Env var / secret manager |
 | **Encryption key** | 32-byte key for at-rest encryption of audit detail | Env var / secret manager |

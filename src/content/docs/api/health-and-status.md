@@ -10,7 +10,7 @@ Four endpoints for health and metrics. Unlike `/api/v1/*` and `/manage/*`, the h
 Liveness probe. Returns `200` if the process is running, regardless of whether it's actually serving traffic.
 
 ```bash
-curl http://localhost:8080/healthz
+curl https://sif.unicity.network/healthz
 ```
 
 ```json

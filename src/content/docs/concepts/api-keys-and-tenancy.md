@@ -7,10 +7,10 @@ Every call to the gateway is authenticated with an API key. The key is the entry
 
 ## What a key is
 
-A key is a random 32-character secret with the prefix `ps_`:
+A key is a random 32-character secret with the prefix `semd_`:
 
 ```
-ps_a3f0c8e1b2d97c4f6a8e2b1d3c5f7a9e
+semd_a3f0c8e1b2d97c4f6a8e2b1d3c5f7a9e
 ```
 
 The full secret is shown once — at creation — and stored hashed in Postgres. Lost keys cannot be recovered, only rotated.
@@ -20,8 +20,8 @@ The full secret is shown once — at creation — and stored hashed in Postgres.
 The gateway accepts the key in either of two headers:
 
 ```
-Authorization: Bearer sk_a3f0...
-X-API-Key:     ps_a3f0...
+Authorization: Bearer semd_a3f0...
+X-API-Key:     semd_a3f0...
 ```
 
 Both are equivalent. The Python SDK uses `X-API-Key`. Most curl examples use `Authorization: Bearer` because it composes with existing tooling.
@@ -55,10 +55,10 @@ A limit of `0` means unlimited. Use unlimited only for keys whose calling applic
 
 ## Audit attribution
 
-Every audit row records the key prefix (`ps_a3f0…`, never the full secret) and the request metadata. This drives:
+Every audit row records the key prefix (`semd_a3f0…`, never the full secret) and the request metadata. This drives:
 
 - The "Last used" column on the [Settings page](../dashboard/settings-page.md).
-- Per-key filtering on `GET /manage/audit/entries?key_prefix=ps_a3f0`.
+- Per-key filtering on `GET /manage/audit/entries?key_prefix=semd_a3f0`.
 - Anomaly detection (e.g. a key suddenly producing 100× its baseline volume).
 
 Disabled and revoked keys retain their audit history; rows are not purged when the key is revoked.

@@ -5,6 +5,10 @@ description: The /manage/* API for rules, policies, detectors, keys, and audit.
 
 > **Status: beta.** Used by the dashboard and by operator scripts. Shapes may evolve before 1.0.
 
+:::caution[Admin scope required]
+The `/manage/*` endpoints are the operator/SRE surface. During the hosted alpha, the API keys issued to design partners do **not** grant the `manage` scope — these calls will return `403 forbidden`. Use the [dashboard](../dashboard/settings-page.md) for the equivalent workflows, or wait for post-alpha self-hosting where you control scope.
+:::
+
 The `/manage/*` family is the admin surface — read and write the gateway's configuration, read the audit log. All endpoints require an API key whose policy grants the `manage` scope (or `--dev-mode`).
 
 ## Rules
@@ -18,8 +22,8 @@ The `/manage/*` family is the admin surface — read and write the gateway's con
 | `DELETE` | `/manage/rules/{id}` | Remove a custom rule file |
 
 ```bash
-curl http://localhost:8080/manage/rules \
-  -H "Authorization: Bearer sk_admin_key"
+curl https://sif.unicity.network/manage/rules \
+  -H "Authorization: Bearer semd_admin_key"
 ```
 
 Response:
@@ -74,8 +78,8 @@ Policy shape matches [Concepts → Policies](../concepts/policies.md).
 | `POST` | `/manage/keys/{id}/revoke` | Permanently invalidate |
 
 ```bash
-curl -X POST http://localhost:8080/manage/keys \
-  -H "Authorization: Bearer sk_admin_key" \
+curl -X POST https://sif.unicity.network/manage/keys \
+  -H "Authorization: Bearer semd_admin_key" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "support-bot-prod",
@@ -90,7 +94,7 @@ Response (the only place the full secret appears):
 {
   "id": "key_a3f0c8e1",
   "name": "support-bot-prod",
-  "secret": "sk_a3f0c8e1b2d97c4f6a8e2b1d3c5f7a9e",
+  "secret": "semd_a3f0c8e1b2d97c4f6a8e2b1d3c5f7a9e",
   "policy": "default",
   "rate_limit_rpm": 60,
   "status": "active",
