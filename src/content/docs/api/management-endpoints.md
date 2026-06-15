@@ -69,22 +69,20 @@ Policy shape matches [Concepts → Policies](../concepts/policies.md).
 
 | Method | Path | Purpose |
 |---|---|---|
-| `GET` | `/manage/keys` | List keys (secrets are never returned) |
-| `GET` | `/manage/keys/{id}` | Get one key's metadata |
-| `POST` | `/manage/keys` | Create a new key. The secret is returned **only** in this response |
-| `PATCH` | `/manage/keys/{id}` | Update name, policy binding, rate limit, expiry, or status |
-| `POST` | `/manage/keys/{id}/rotate` | Issue a new secret with a 24-hour overlap |
-| `POST` | `/manage/keys/{id}/disable` | Reject all future requests with `403 key_disabled` |
-| `POST` | `/manage/keys/{id}/revoke` | Permanently invalidate |
+| `GET` | `/manage/api-keys` | List keys (secrets are never returned) |
+| `GET` | `/manage/api-keys/{id}` | Get one key's metadata |
+| `POST` | `/manage/api-keys` | Create a new key. The secret is returned **only** in this response |
+| `PATCH` | `/manage/api-keys/{id}` | Update name, policy binding, rate limit, expiry, or status |
+| `POST` | `/manage/api-keys/{id}/rotate` | Issue a new secret with a 24-hour overlap |
+| `POST` | `/manage/api-keys/{id}/disable` | Reject all future requests with `403 key_disabled` |
+| `POST` | `/manage/api-keys/{id}/revoke` | Permanently invalidate |
 
 ```bash
-curl -X POST https://sif.unicity.network/manage/keys \
+curl -X POST https://sif.unicity.network/manage/api-keys \
   -H "Authorization: Bearer semd_admin_key" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "support-bot-prod",
-    "policy": "default",
-    "rate_limit_rpm": 60
+    "name": "support-bot-prod"
   }'
 ```
 
@@ -92,47 +90,45 @@ Response (the only place the full secret appears):
 
 ```json
 {
-  "id": "key_a3f0c8e1",
+  "id": "b93f228d-23ae-45cb-a39b-490000889aea",
+  "api_key": "semd_a3f0c8e1b2d97c4f6a8e2b1d3c5f7a9e",
+  "key_prefix": "semd_a3f0c8e1",
   "name": "support-bot-prod",
-  "secret": "semd_a3f0c8e1b2d97c4f6a8e2b1d3c5f7a9e",
-  "policy": "default",
-  "rate_limit_rpm": 60,
-  "status": "active",
   "created_at": "2026-06-07T18:42:10.123Z"
 }
 ```
+
+The full secret is the `api_key` field; `key_prefix` is the abbreviated form shown in lists, audit rows, and the dashboard. Policy binding, rate limit, expiry, and status default to the policy/key tenancy defaults and can be set with a follow-up `PATCH /manage/api-keys/{id}`.
 
 ## Audit
 
 | Method | Path | Purpose |
 |---|---|---|
-| `GET` | `/manage/audit/entries` | List audit rows, paginated |
-| `GET` | `/manage/audit/entries/{request_id}` | Single audit row by ID |
+| `GET` | `/manage/audit` | List audit rows |
+| `GET` | `/manage/audit/{id}` | Single audit row by internal `id` (UUID, **not** `request_id`) |
 | `GET` | `/manage/audit/stats/hourly` | Hourly bucket counts |
 
-Query parameters for `/manage/audit/entries`:
+Query parameters for `/manage/audit`:
 
 | Parameter | Type | Notes |
 |---|---|---|
 | `action` | string | Filter by verdict action: `allow`, `block`, `flag`, `modify` |
 | `key_prefix` | string | Filter by API key (the prefix shown in the dashboard) |
-| `policy` | string | Filter by `policy_applied` |
+| `policy` | string | Filter by `policy_id` |
 | `category` | string | Filter to rows with at least one detection in this category |
 | `since` | ISO-8601 | Lower bound on timestamp |
 | `until` | ISO-8601 | Upper bound on timestamp |
-| `page_size` | integer | 1–500. Default 50 |
-| `cursor` | opaque | Opaque pagination cursor from the previous page |
+| `limit` | integer | 1–500. Default 50 |
 
 Response:
 
 ```json
 {
-  "entries": [ { /* audit row */ } ],
-  "next_cursor": "eyJ0c...="
+  "data": [ { /* audit row */ } ]
 }
 ```
 
-When `next_cursor` is absent, the result set is exhausted.
+Audit row fields: `id`, `request_id`, `event_type`, `action`, `message_count`, `total_chars`, `latency_ms`, `risk_score`, `policy_id`, `api_key_id` (the `key_prefix`), `app_id`, `user_id`, `session_id`, `detections`, `degraded`, `client_ip`, `user_agent`, `ruleset_version`, `timestamp`.
 
 ## Errors
 
