@@ -45,7 +45,7 @@ The gateway writes structured logs to stdout in JSON:
 {
   "ts": "2026-06-07T18:42:10.123Z",
   "level": "info",
-  "target": "promptshield::pipeline",
+  "target": "semanticd::pipeline",
   "request_id": "req_b7d4e9f2",
   "message": "verdict: block",
   "policy": "default",

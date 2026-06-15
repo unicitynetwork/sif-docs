@@ -33,7 +33,7 @@ Re-send the prompt that triggered the original verdict — through the same API 
 ```bash
 curl -X POST http://localhost:8080/api/v1/guard \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer ps_your_key" \
+  -H "Authorization: Bearer sk_your_key" \
   -d '{ "messages": [{"role":"user","content":"<the borderline prompt>"}] }'
 ```
 

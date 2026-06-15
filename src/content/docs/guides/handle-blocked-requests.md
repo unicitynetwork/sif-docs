@@ -78,7 +78,7 @@ If the gateway itself errors (network failure, timeout, 5xx), your application h
 ```python
 try:
     result = guard.guard(user_text)
-except PromptShieldError:
+except SemanticFirewallError:
     if FAIL_OPEN:
         log.error("guard unreachable; failing open")
         return call_llm(user_text)

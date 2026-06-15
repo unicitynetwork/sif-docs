@@ -1,6 +1,6 @@
 ---
 title: Python SDK
-description: The promptshield Python package — install, usage, and reference.
+description: The semantic-firewall Python package — install, usage, and reference.
 ---
 
 A thin httpx-based wrapper for the Semantic Firewall HTTP API. Targets Python 3.9+.
@@ -8,17 +8,17 @@ A thin httpx-based wrapper for the Semantic Firewall HTTP API. Targets Python 3.
 ## Install
 
 ```bash
-pip install promptshield
+pip install semantic-firewall
 ```
 
 ## Quick use
 
 ```python
-from promptshield import PromptShield
+from semantic_firewall import SemanticFirewall
 
-client = PromptShield(
+client = SemanticFirewall(
     base_url="http://localhost:8080",
-    api_key="ps_your_key_here",
+    api_key="sk_your_key_here",
 )
 
 result = client.guard("Hello, how are you?")
@@ -33,7 +33,7 @@ else:
 ## Client
 
 ```python
-class PromptShield:
+class SemanticFirewall:
     def __init__(
         self,
         base_url: str,
@@ -99,8 +99,8 @@ class Detection:
 ## Errors
 
 ```python
-from promptshield import (
-    PromptShieldError,           # base class
+from semantic_firewall import (
+    SemanticFirewallError,           # base class
     AuthenticationError,         # 401, 403
     ServerError,                 # 5xx
 )
@@ -113,20 +113,20 @@ except AuthenticationError:
 except ServerError:
     # Decide fail-open vs. fail-closed
     raise
-except PromptShieldError:
+except SemanticFirewallError:
     # Network errors, timeouts, malformed responses
     log.exception("guard call failed")
     raise
 ```
 
-`PromptShieldError` is the parent of every SDK exception. Catch it at your application boundary; let everything else propagate.
+`SemanticFirewallError` is the parent of every SDK exception. Catch it at your application boundary; let everything else propagate.
 
 ## Async
 
 ```python
-from promptshield import AsyncPromptShield
+from semantic_firewall import AsyncSemanticFirewall
 
-client = AsyncPromptShield(base_url="...", api_key="ps_...")
+client = AsyncSemanticFirewall(base_url="...", api_key="ps_...")
 result = await client.guard("hello")
 ```
 
@@ -137,7 +137,7 @@ Identical interface to the sync client; all I/O is non-blocking. Use this when c
 Both client classes work as context managers; the underlying httpx connection is closed on exit:
 
 ```python
-with PromptShield(base_url="...", api_key="...") as client:
+with SemanticFirewall(base_url="...", api_key="...") as client:
     result = client.guard(prompt)
 ```
 

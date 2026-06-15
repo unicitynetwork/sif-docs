@@ -18,7 +18,7 @@ Every call to `/api/v1/guard` carries an API key. This page is the operator-side
 A key looks like `ps_<32 random characters>`. It is presented to the gateway in either of two headers:
 
 ```
-Authorization: Bearer ps_a3f0...
+Authorization: Bearer sk_a3f0...
 ```
 
 or

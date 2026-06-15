@@ -31,7 +31,7 @@ Then call it:
 ```bash
 curl -X POST http://localhost:8080/api/v1/guard \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer ps_test_key" \
+  -H "Authorization: Bearer sk_test_key" \
   -d '{
     "messages": [{"role": "user", "content": "Hello"}]
   }'

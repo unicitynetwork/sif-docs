@@ -54,7 +54,7 @@ Most often: the API key the dashboard is using lacks valid auth.
 ```bash
 # From the host where the dashboard runs:
 wscat -c "ws://localhost:8081/ws/events" \
-  -H "Authorization: Bearer ps_dashboard_key"
+  -H "Authorization: Bearer sk_dashboard_key"
 ```
 
 If wscat fails to upgrade, the key is invalid or revoked. Check `/manage/keys` and the dashboard's configuration.

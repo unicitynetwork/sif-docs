@@ -8,7 +8,7 @@ All calls to the gateway require an API key. Two header forms are accepted; both
 ## Headers
 
 ```http
-Authorization: Bearer ps_a3f0c8e1b2d97c4f6a8e2b1d3c5f7a9e
+Authorization: Bearer sk_a3f0c8e1b2d97c4f6a8e2b1d3c5f7a9e
 ```
 
 or
@@ -55,7 +55,7 @@ GET /ws/events HTTP/1.1
 Host: gateway.example.com
 Upgrade: websocket
 Connection: Upgrade
-Authorization: Bearer ps_...
+Authorization: Bearer sk_...
 ```
 
 Browsers cannot set arbitrary headers on a WebSocket upgrade. For browser clients, the gateway also accepts the key as a query parameter:
