@@ -4,8 +4,11 @@ import starlight from "@astrojs/starlight";
 
 // https://astro.build/config
 export default defineConfig({
-  // Set to the production URL when one exists.
-  // site: "https://docs.unicity-aos9.example.com",
+  // Deployed to GitHub Pages as a project site:
+  // https://unicitynetwork.github.io/sif-docs/
+  // `base` must match the repo name so internal links and assets resolve.
+  site: "https://unicitynetwork.github.io",
+  base: "/sif-docs",
   integrations: [
     starlight({
       title: "Unicity-AOS9",
