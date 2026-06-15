@@ -1,6 +1,8 @@
 ---
 title: Installation
 description: Prerequisites, building from source, and running locally with Docker.
+sidebar:
+  order: 4
 ---
 
 :::caution[Self-hosting available post-alpha]
@@ -35,7 +37,7 @@ Then call it:
 ```bash
 curl -X POST http://localhost:8080/api/v1/guard \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer sk_test_key" \
+  -H "Authorization: Bearer semd_test_key" \
   -d '{
     "messages": [{"role": "user", "content": "Hello"}]
   }'

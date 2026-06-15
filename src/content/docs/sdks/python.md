@@ -17,8 +17,8 @@ pip install semantic-firewall
 from semantic_firewall import SemanticFirewall
 
 client = SemanticFirewall(
-    base_url="http://localhost:8080",
-    api_key="sk_your_key_here",
+    base_url="https://sif.unicity.network",
+    api_key="semd_your_key_here",
 )
 
 result = client.guard("Hello, how are you?")
@@ -126,7 +126,7 @@ except SemanticFirewallError:
 ```python
 from semantic_firewall import AsyncSemanticFirewall
 
-client = AsyncSemanticFirewall(base_url="...", api_key="ps_...")
+client = AsyncSemanticFirewall(base_url="...", api_key="semd_...")
 result = await client.guard("hello")
 ```
 

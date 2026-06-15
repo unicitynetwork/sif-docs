@@ -1,6 +1,8 @@
 ---
 title: Architecture overview
 description: One diagram, key concepts to remember.
+sidebar:
+  order: 3
 ---
 
 ## Overview

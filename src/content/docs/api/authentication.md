@@ -8,20 +8,20 @@ All calls to the gateway require an API key. Two header forms are accepted; both
 ## Headers
 
 ```http
-Authorization: Bearer sk_a3f0c8e1b2d97c4f6a8e2b1d3c5f7a9e
+Authorization: Bearer semd_a3f0c8e1b2d97c4f6a8e2b1d3c5f7a9e
 ```
 
 or
 
 ```http
-X-API-Key: ps_a3f0c8e1b2d97c4f6a8e2b1d3c5f7a9e
+X-API-Key: semd_a3f0c8e1b2d97c4f6a8e2b1d3c5f7a9e
 ```
 
 The Python SDK uses `X-API-Key`. Most curl examples use `Authorization: Bearer`. There is no difference in semantics.
 
 ## Key shape
 
-Keys are `ps_` followed by 32 random alphanumeric characters. They are case-sensitive. The full secret is shown only at creation — see the [Settings page](../dashboard/settings-page.md) for the lifecycle.
+Keys are `semd_` followed by 32 random alphanumeric characters. They are case-sensitive. The full secret is shown only at creation — see the [Settings page](../dashboard/settings-page.md) for the lifecycle.
 
 ## Error responses
 
@@ -55,13 +55,13 @@ GET /ws/events HTTP/1.1
 Host: gateway.example.com
 Upgrade: websocket
 Connection: Upgrade
-Authorization: Bearer sk_...
+Authorization: Bearer semd_...
 ```
 
 Browsers cannot set arbitrary headers on a WebSocket upgrade. For browser clients, the gateway also accepts the key as a query parameter:
 
 ```
-wss://gateway.example.com/ws/events?api_key=ps_...
+wss://gateway.example.com/ws/events?api_key=semd_...
 ```
 
 Query-parameter auth has the usual downside — keys may end up in proxy logs. Prefer header auth for non-browser clients.

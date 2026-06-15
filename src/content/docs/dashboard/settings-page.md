@@ -14,7 +14,7 @@ Backed by `GET /manage/keys`.
 | Column | Meaning |
 |---|---|
 | **Name** | Operator-defined label (e.g. `support-bot-prod`) |
-| **Key prefix** | The first 8 characters of the key (e.g. `ps_a3f0…`) — full key is only shown at creation |
+| **Key prefix** | The first 8 characters of the key (e.g. `semd_a3f0…`) — full key is only shown at creation |
 | **Status** | `active`, `disabled`, or `revoked` |
 | **Rate limit (rpm)** | Requests per minute allowed for this key |
 | **Policy** | Which policy this key is bound to |

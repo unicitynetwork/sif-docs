@@ -11,7 +11,7 @@ The single endpoint that screens a prompt and returns a verdict.
 
 ```http
 POST /api/v1/guard
-Authorization: Bearer sk_...
+Authorization: Bearer semd_...
 Content-Type: application/json
 ```
 

@@ -54,7 +54,7 @@ Most often: the API key the dashboard is using lacks valid auth.
 ```bash
 # From the host where the dashboard runs:
 wscat -c "ws://localhost:8081/ws/events" \
-  -H "Authorization: Bearer sk_dashboard_key"
+  -H "Authorization: Bearer semd_dashboard_key"
 ```
 
 If wscat fails to upgrade, the key is invalid or revoked. Check `/manage/keys` and the dashboard's configuration.
@@ -105,7 +105,7 @@ Fix: raise `max_connections` on Postgres, lower `DATABASE_MAX_CONNECTIONS` per g
 A single key is producing many `429`s. Triage:
 
 ```bash
-curl "http://localhost:8080/manage/audit/entries?key_prefix=ps_a3f0&since=1h" \
+curl "http://localhost:8080/manage/audit/entries?key_prefix=semd_a3f0&since=1h" \
   -H "Authorization: ..." \
   | jq '.entries | length'
 ```

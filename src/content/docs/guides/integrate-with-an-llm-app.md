@@ -29,8 +29,8 @@ Wrap your existing prompt call:
 from semantic_firewall import SemanticFirewall, SemanticFirewallError
 
 guard = SemanticFirewall(
-    base_url="http://localhost:8080",
-    api_key="sk_your_key_here",
+    base_url="https://sif.unicity.network",
+    api_key="semd_your_key_here",
 )
 
 def ask(user_text: str) -> str:
@@ -67,9 +67,9 @@ The `guard()` call returns a response with:
 Any language with an HTTP client works:
 
 ```bash
-curl -X POST http://localhost:8080/api/v1/guard \
+curl -X POST https://sif.unicity.network/api/v1/guard \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer sk_your_key" \
+  -H "Authorization: Bearer semd_your_key" \
   -d '{
     "messages": [{"role": "user", "content": "..."}]
   }'

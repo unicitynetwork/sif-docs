@@ -18,8 +18,8 @@ The `/manage/*` family is the admin surface — read and write the gateway's con
 | `DELETE` | `/manage/rules/{id}` | Remove a custom rule file |
 
 ```bash
-curl http://localhost:8080/manage/rules \
-  -H "Authorization: Bearer sk_admin_key"
+curl https://sif.unicity.network/manage/rules \
+  -H "Authorization: Bearer semd_admin_key"
 ```
 
 Response:
@@ -74,8 +74,8 @@ Policy shape matches [Concepts → Policies](../concepts/policies.md).
 | `POST` | `/manage/keys/{id}/revoke` | Permanently invalidate |
 
 ```bash
-curl -X POST http://localhost:8080/manage/keys \
-  -H "Authorization: Bearer sk_admin_key" \
+curl -X POST https://sif.unicity.network/manage/keys \
+  -H "Authorization: Bearer semd_admin_key" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "support-bot-prod",
@@ -90,7 +90,7 @@ Response (the only place the full secret appears):
 {
   "id": "key_a3f0c8e1",
   "name": "support-bot-prod",
-  "secret": "sk_a3f0c8e1b2d97c4f6a8e2b1d3c5f7a9e",
+  "secret": "semd_a3f0c8e1b2d97c4f6a8e2b1d3c5f7a9e",
   "policy": "default",
   "rate_limit_rpm": 60,
   "status": "active",
