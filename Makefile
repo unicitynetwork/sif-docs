@@ -18,6 +18,9 @@ PACKAGE  := unicity-aos9-user-guide-$(DATE)
 DIST     := $(ROOT)/dist
 ZIP      := $(DIST)/$(PACKAGE).zip
 PDF      := $(DIST)/$(PACKAGE).pdf
+# Staging copy of dist/ with URLs rewritten for file:// browsing. Lives
+# outside dist/ so the PDF target keeps using the unmodified build.
+STAGE    := $(ROOT)/.zip-staging
 
 .PHONY: help install build zip pdf package clean
 
@@ -42,13 +45,20 @@ install:
 build:
 	cd $(ROOT) && npm run build
 
-# zip recipe writes the archive to ROOT first, then moves it into DIST.
-# Writing it directly into DIST while zipping DIST risks the archive
-# including a partial copy of itself.
+# zip target stages a copy of dist/ with server-absolute URLs rewritten to
+# page-relative form (so customers can double-click index.html and read it
+# without running a web server), then archives the staging dir. The zip is
+# written to ROOT first and moved into DIST to avoid the recursive-archive
+# pattern (zipping a directory while writing the archive into that same
+# directory).
 zip: build
+	@echo "▶ preparing offline-portable HTML for ZIP…"
+	rm -rf $(STAGE)
+	cd $(ROOT) && node $(ROOT)/scripts/prepare-zip.mjs $(DIST) $(STAGE)
 	@echo "▶ packaging zip…"
-	cd $(DIST) && zip -rq $(ROOT)/$(PACKAGE).zip . -x '*.zip' '*.pdf'
+	cd $(STAGE) && zip -rq $(ROOT)/$(PACKAGE).zip . -x '*.zip' '*.pdf'
 	mv $(ROOT)/$(PACKAGE).zip $(ZIP)
+	rm -rf $(STAGE)
 	@echo "→ $(ZIP) ($$(du -h $(ZIP) | cut -f1))"
 
 pdf: build
@@ -66,4 +76,4 @@ package: zip pdf
 	@ls -lh $(ZIP) $(PDF)
 
 clean:
-	rm -rf $(DIST)
+	rm -rf $(DIST) $(STAGE)

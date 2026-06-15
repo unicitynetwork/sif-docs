@@ -8,6 +8,8 @@ pnpm-debug.log*
 # Astro / Starlight build output
 dist/
 .astro/
+# Temp staging dir for the offline-portable ZIP (URLs rewritten for file://)
+.zip-staging/
 
 # Customer-deliverable packages (produced by `make package`)
 # Always live under dist/ already, but listed explicitly in case they get
