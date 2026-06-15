@@ -11,7 +11,7 @@ Send up to 100 guard requests in a single HTTP call. Useful for offline scoring,
 
 ```http
 POST /api/v1/guard/batch
-Authorization: Bearer ps_...
+Authorization: Bearer sk_...
 Content-Type: application/json
 ```
 

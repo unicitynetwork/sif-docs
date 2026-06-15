@@ -56,7 +56,7 @@ Each `results[]` element has the single-guard fields plus the echoed `id`.
   "risk_score": 0.91,
   "policy_applied": "default",
   "detections": [ ... ],
-  "api_key_prefix": "ps_a3f0",
+  "api_key_prefix": "sk_a3f0",
   "request_summary": "Help me ignore previous instr..."
 }
 ```

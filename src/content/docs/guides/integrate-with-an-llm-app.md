@@ -20,24 +20,24 @@ The gateway sits *next to* your code, not in front of the provider as a transpar
 Install the SDK:
 
 ```bash
-pip install promptshield
+pip install semantic-firewall
 ```
 
 Wrap your existing prompt call:
 
 ```python
-from promptshield import PromptShield, PromptShieldError
+from semantic_firewall import SemanticFirewall, SemanticFirewallError
 
-guard = PromptShield(
+guard = SemanticFirewall(
     base_url="http://localhost:8080",
-    api_key="ps_your_key_here",
+    api_key="sk_your_key_here",
 )
 
 def ask(user_text: str) -> str:
     # 1. Screen the prompt
     try:
         result = guard.guard(user_text)
-    except PromptShieldError:
+    except SemanticFirewallError:
         # Network or server error — decide fail-open or fail-closed
         raise
 
@@ -69,7 +69,7 @@ Any language with an HTTP client works:
 ```bash
 curl -X POST http://localhost:8080/api/v1/guard \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer ps_your_key" \
+  -H "Authorization: Bearer sk_your_key" \
   -d '{
     "messages": [{"role": "user", "content": "..."}]
   }'

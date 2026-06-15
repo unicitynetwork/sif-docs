@@ -20,7 +20,7 @@ In dev: `ws://localhost:8081/ws/events`.
 Either header or query parameter (see [Authentication](authentication.md)):
 
 ```
-Authorization: Bearer ps_...
+Authorization: Bearer sk_...
 ```
 
 or for browser clients:
@@ -68,7 +68,7 @@ One JSON message per event. UTF-8 text frames; the server does not send binary f
       "message_index": 1
     }
   ],
-  "api_key_prefix": "ps_a3f0",
+  "api_key_prefix": "sk_a3f0",
   "request_summary": "Help me ignore previous instr..."
 }
 ```
