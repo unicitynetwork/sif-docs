@@ -22,13 +22,14 @@ PDF      := $(DIST)/$(PACKAGE).pdf
 # outside dist/ so the PDF target keeps using the unmodified build.
 STAGE    := $(ROOT)/.zip-staging
 
-.PHONY: help install build zip pdf package release clean
+.PHONY: help install dev build zip pdf package release clean
 
 help:
 	@echo "Semantic Firewall User Guide — make targets"
 	@echo
 	@echo "  install   First-time setup: npm install + playwright chromium"
 	@echo "            (chromium download is ~150 MB; only needed for PDF)"
+	@echo "  dev       Start the Astro dev server with HMR at http://localhost:4321"
 	@echo "  build     Run Astro build → $(DIST)/"
 	@echo "  zip       build + produce $(ZIP)"
 	@echo "  pdf       build + produce $(PDF)"
@@ -43,6 +44,11 @@ help:
 install:
 	cd $(ROOT) && npm install
 	cd $(ROOT) && npx playwright install chromium
+
+# Astro dev server with HMR. Default port 4321 (see package.json).
+# Foregrounds the process; Ctrl-C to stop.
+dev:
+	cd $(ROOT) && npm run dev
 
 build:
 	cd $(ROOT) && npm run build
