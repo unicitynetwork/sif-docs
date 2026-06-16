@@ -3,7 +3,17 @@ title: Health and status
 description: /healthz, /readyz, /version, /status — process introspection.
 ---
 
-Four endpoints for health and metrics. Unlike `/api/v1/*` and `/manage/*`, the health endpoints are unauthenticated and stable (not marked beta).
+Health and metrics surface on **two ports**, not one. The split is part of the gateway's three-port architecture:
+
+| Port | Bound by | Endpoints |
+|---|---|---|
+| **Guard API** (default `SEMANTICD_PORT`, e.g. 8080) | `semd-api` | `/healthz`, `/readyz`, `/version`, `/status` |
+| **Management API** (default `SEMANTICD_PORT + 1`, e.g. 8081) | `semd-manage` | `/api/health`, `/api/version`, `/api/status` |
+| **Metrics** (default `SEMANTICD_PORT + 2`, e.g. 8082) | `semd-telemetry` | Prometheus scrape endpoint |
+
+The guard-side and management-side health endpoints answer for **different processes** in different feature-flag configurations — they aren't the same. The guard side is what your load balancer should probe; the management side is what the dashboard polls.
+
+All health endpoints are unauthenticated and stable (not marked beta).
 
 ## `GET /healthz`
 
@@ -111,13 +121,14 @@ The counters are **in-memory** and reset to zero on process restart. For histori
 
 ## When to use which
 
-| Need | Endpoint |
-|---|---|
-| Is the process alive? | `/healthz` |
-| Should I send it traffic? | `/readyz` |
-| What version is running? | `/version` |
-| Current metrics + ruleset version | `/api/status` |
-| Historical metrics | `/manage/audit/stats/hourly` |
+| Need | Endpoint | Port |
+|---|---|---|
+| Is the guard process alive? | `/healthz` | Guard |
+| Should I route traffic to it? | `/readyz` | Guard |
+| What version is running? | `/version` (guard) or `/api/version` (manage) | Either |
+| Current metrics + ruleset version | `/api/status` | Manage |
+| Is the management API alive? | `/api/health` | Manage |
+| Historical metrics | `/manage/audit/stats/hourly` | Manage |
 
 ## Related
 

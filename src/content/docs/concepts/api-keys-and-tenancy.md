@@ -7,13 +7,13 @@ Every call to the gateway is authenticated with an API key. The key is the entry
 
 ## What a key is
 
-A key is a random 32-character secret with the prefix `semd_`:
+A key is a random 32-character secret with the prefix `semd_live_`:
 
 ```
-semd_a3f0c8e1b2d97c4f6a8e2b1d3c5f7a9e
+semd_live_a3f0c8e1b2d97c4f6a8e2b1d3c5f7a9e
 ```
 
-The full secret is shown once — at creation — and stored hashed in Postgres. Lost keys cannot be recovered, only rotated.
+The full secret is shown once — at creation, in the `api_key` field of the response — and stored hashed in Postgres. Lost keys cannot be recovered; the operator has to mint a new key and revoke the old one (there is no in-place `/rotate` endpoint — see [How-to → Add and rotate API keys](../guides/add-and-rotate-api-keys.md)).
 
 ## How it's presented
 
@@ -30,7 +30,7 @@ Both are equivalent. The Python SDK uses `X-API-Key`. Most curl examples use `Au
 
 Every key is bound to exactly one policy when it is created. The binding is the *only* way a policy affects a request: there is no way to override the policy per-call.
 
-To change a key's policy, edit the key on the [Settings page](../dashboard/settings-page.md) or via `PATCH /manage/keys/{id}`.
+To change a key's policy, edit the key on the [Settings page](../dashboard/settings-page.md) or via `PATCH /manage/api-keys/{id}`.
 
 Multiple keys can share a policy. This is the recommended pattern for multi-application deployments:
 
@@ -58,10 +58,10 @@ A limit of `0` means unlimited. Use unlimited only for keys whose calling applic
 Every audit row records the key prefix (`semd_a3f0…`, never the full secret) and the request metadata. This drives:
 
 - The "Last used" column on the [Settings page](../dashboard/settings-page.md).
-- Per-key filtering on `GET /manage/audit/entries?key_prefix=semd_a3f0`.
+- Per-key filtering on `GET /manage/audit?key_prefix=semd_live_a3f0`.
 - Anomaly detection (e.g. a key suddenly producing 100× its baseline volume).
 
-Disabled and revoked keys retain their audit history; rows are not purged when the key is revoked.
+Suspended and revoked keys retain their audit history; rows are not purged when the key is revoked.
 
 ## Tenant separation
 
