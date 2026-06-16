@@ -3,109 +3,99 @@ title: Stream detection events
 description: Consume the WebSocket feed from /ws/events.
 ---
 
-The gateway publishes a live event stream over WebSocket. Every verdict produces an event; consumers can subscribe to drive dashboards, push to a SIEM, or trigger alerting.
+The gateway publishes a live event stream over WebSocket on the management API port. Every guard call produces one `threat` event (across all keys / all policies, including allows). Consumers can drive dashboards, push to a SIEM, or trigger alerting.
+
+See [HTTP API → Events WebSocket](../api/events-websocket.md) for the source-of-truth envelope and event types. This page is the recipe for building a consumer.
 
 ## Connect
 
 ```
-wss://<gateway-host>/ws/events
+wss://<manage-host>/ws/events
 ```
 
-Authentication is per-API-key, same as the REST API. Pass the key in the WebSocket upgrade headers:
+The WS lives on the **management port** (default `SEMANTICD_PORT + 1`). Authenticate with the same JWT used for `/manage/*` calls:
 
 ```
 GET /ws/events HTTP/1.1
-Host: gateway.internal
+Host: …
 Upgrade: websocket
 Connection: Upgrade
-Authorization: Bearer semd_your_key
+Authorization: Bearer <jwt>
 ```
 
-In `--dev-mode` no auth is required. In any other mode an unauthenticated upgrade is rejected with `401`.
+Get the JWT via `POST /manage/auth/login`. Unauthenticated upgrades are rejected with `401` during the HTTP handshake.
 
 ## Event shape
 
-Each event is a single JSON message:
+The envelope is always `{type, payload, timestamp}`. See [HTTP API → Events WebSocket](../api/events-websocket.md) for the full schema. Quick reference:
 
 ```json
 {
-  "type": "verdict",
-  "request_id": "req_b7d4e9f2",
-  "ts": "2026-06-07T18:42:10.123Z",
-  "action": "block",
-  "risk_score": 0.91,
-  "policy_applied": "default",
-  "detections": [
-    {
-      "detector": "prompt_injection",
-      "category": "direct_injection",
-      "confidence": 0.91,
-      "rule_id": "PI-014",
-      "evidence": "Instruction override pattern detected",
-      "message_index": 1
-    }
-  ],
-  "api_key_prefix": "semd_a3f0",
-  "request_summary": "Help me ignore previous instr..."
+  "type": "threat",
+  "payload": {
+    "request_id": "019ed01f-eeb3-7540-8959-c1142415dc57",
+    "action": "block",
+    "risk_score": 1.0,
+    "detections": [
+      {
+        "category": "injection",
+        "confidence": 0.91,
+        "description": "Instruction override pattern detected",
+        "rule_id": "PI-014"
+      }
+    ]
+  },
+  "timestamp": "2026-06-16T11:10:14.574Z"
 }
 ```
 
-Event types currently emitted:
-
-| `type` | When |
-|---|---|
-| `verdict` | After any guard call completes — for every `action`, including `allow` |
-| `rule_loaded` | When a rule file is hot-reloaded |
-| `rule_error` | When a rule file fails to parse |
-| `detector_state` | When a detector transitions between active / degraded / disabled |
-
-## Subscribe to a subset
-
-By default the stream emits all event types. To narrow:
-
-```
-GET /ws/events?types=verdict,rule_error HTTP/1.1
-```
-
-For verdict events, filter by action:
-
-```
-GET /ws/events?types=verdict&actions=block,modify HTTP/1.1
-```
-
-Filtering happens server-side, so this scales better than client-side filtering on a high-volume stream.
+Two `type` values are emitted today: `heartbeat` (on connect + every 30 s) and `threat` (one per guard call, including `allow`).
 
 ## A consumer in Python
+
+The stream does **not** support filter query parameters in the current build — every consumer sees every guard event. Filter client-side.
 
 ```python
 import asyncio, json, websockets
 
+JWT = "..."
+
 async def main():
-    uri = "wss://gateway.internal/ws/events?types=verdict&actions=block,modify"
-    headers = {"Authorization": "Bearer semd_your_key"}
+    uri = "wss://<manage-host>/ws/events"
+    headers = {"Authorization": f"Bearer {JWT}"}
     async with websockets.connect(uri, additional_headers=headers) as ws:
         async for raw in ws:
             event = json.loads(raw)
             handle(event)
 
 def handle(event: dict) -> None:
-    if event["action"] == "block":
-        send_to_siem(event)
-    elif event["action"] == "modify":
-        log_diff(event)
+    if event["type"] == "heartbeat":
+        return  # liveness signal; nothing to do
+    if event["type"] != "threat":
+        return  # forward-compat: ignore unknown types
+    payload = event["payload"]
+    action = payload["action"]
+    if action == "block":
+        send_to_siem(payload)
+    elif action == "modify":
+        log_diff(payload)
+    elif action == "flag":
+        log_flag(payload)
+    # allow: skip
 
 asyncio.run(main())
 ```
 
 ## Operational notes
 
-- **Reconnection** — the server sends ping frames every 30 s. If the connection drops, reconnect with exponential backoff. The stream does not replay missed events; for guaranteed delivery, pair with periodic polls of `GET /manage/audit/entries`.
-- **Backpressure** — the server buffers up to 1000 events per connection. Slow consumers exceeding the buffer are disconnected with code 1009 (message too big) or 1011 (server error). Don't do heavy work in the receive loop; hand off to a queue.
-- **Multiple consumers** — every connected consumer sees every matching event. There is no fan-out partitioning; if you need per-consumer guarantees, build them in your consumer layer.
-- **Volume** — at sustained high traffic (>500 rps) consider polling the audit endpoint instead. The stream is designed for low-latency review and dashboards, not for bulk log shipping.
+- **Reconnection** — The server sends a `heartbeat` event on connect and every 30 seconds. If the connection drops, reconnect with exponential backoff. The stream does **not** replay missed events; for guaranteed delivery, pair with periodic polls of `GET /manage/audit?since=<watermark>`.
+- **Backpressure** — The broadcast channel buffer is 256 events. If your consumer falls behind, the server logs `RecvError::Lagged(n)` and you skip ahead — dropped events are not redelivered. Don't do heavy work in the receive loop; hand off to a queue.
+- **Multiple consumers** — Every connected consumer sees every event. There is no fan-out partitioning. If you need per-consumer guarantees, build them in your consumer layer.
+- **Volume** — At sustained high traffic (>500 rps) consider polling `/manage/audit` instead. The stream is designed for low-latency review and dashboards, not for bulk log shipping.
+- **Alpha gotcha** — `payload.detections` mirrors `GuardResponse.detections`, which the live alpha build is not populating even on hard blocks. The block decision (`action`, `risk_score`) is correct; the detection-evidence array is just empty. See [Verdict shapes](../reference/verdict-shapes.md).
 
 ## Related
 
-- [HTTP API → Events WebSocket](../api/events-websocket.md) — reference for the URL, query parameters, and close codes.
+- [HTTP API → Events WebSocket](../api/events-websocket.md) — reference for the URL, envelope, and close codes.
 - [How-to → Monitor production traffic](monitor-production-traffic.md) — picking between the stream, audit-poll, and metrics for the right job.
 - [Dashboard → Overview page](../dashboard/overview-page.md) — the dashboard's live feed is a UI on top of this same stream.
