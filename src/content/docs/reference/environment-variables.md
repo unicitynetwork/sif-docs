@@ -1,94 +1,99 @@
 ---
 title: Environment variables
-description: Runtime overrides for every config.toml key.
+description: Every environment variable the gateway reads, with TOML cross-references.
 ---
 
-Any key in `config.toml` can be overridden by an environment variable. This page lists the most common ones explicitly; the general convention is at the bottom.
+Grounded in [`crates/semanticd/src/cli.rs`](https://github.com/unicitynetwork/semanticd/blob/main/crates/semanticd/src/cli.rs) (CLI + per-flag env), [`crates/semanticd/src/main.rs`](https://github.com/unicitynetwork/semanticd/blob/main/crates/semanticd/src/main.rs) (admin seeding + JWT secret), and the config-override layer in `semanticd/src/config.rs`.
 
-## Common variables
+## Headline variables (set these)
+
+| Variable | What it controls | Default |
+|---|---|---|
+| `SEMANTICD_CONFIG` | Path to `config.toml` (global, takes precedence over CWD lookup) | `./config.toml` |
+| `SEMANTICD_LOG_LEVEL` | Log verbosity — `trace` / `debug` / `info` / `warn` / `error` | `info` |
+| `SEMANTICD_LOG_FORMAT` | `pretty` / `compact` / `json` | `pretty` |
+
+The three above are global — usable with any subcommand.
+
+## `serve` subcommand
+
+These flags / env vars apply to `semanticd serve`. Each CLI flag also accepts the matching env var.
+
+| Variable | CLI flag | Default | Notes |
+|---|---|---|---|
+| `SEMANTICD_HOST` | `--host` | from `config.toml` → `server.bind` host | Guard API bind host |
+| `SEMANTICD_PORT` | `--port` | from `config.toml` → `server.bind` port | Guard API port |
+| `SEMANTICD_MANAGE_PORT` | `--manage-port` | `SEMANTICD_PORT + 1` | Management API port |
+| `SEMANTICD_METRICS_PORT` | `--metrics-port` | `SEMANTICD_PORT + 2` | Metrics scrape port |
+| `SEMANTICD_DATABASE_URL` | `--database-url` | from `config.toml` → `database.url` | Postgres connection string |
+| `SEMANTICD_REDIS_URL` | `--redis-url` | from `config.toml` → `redis.url` | Redis connection string |
+| `SEMANTICD_RULES_DIR` | `--rules-dir` | from `config.toml` → `engine.rules.paths[0]` | Rule files directory |
+| `SEMANTICD_DEV_MODE` | `--dev-mode` | `false` | Relaxed security + verbose logging |
+
+The three-port split is real: a single `semanticd serve` process binds three distinct ports (Guard / Management / Metrics) — see [Health and status](../api/health-and-status.md).
+
+## Admin seeding
+
+Run at first boot to create the initial admin user. After that the user lives in Postgres and these vars are ignored.
 
 | Variable | Default | Notes |
 |---|---|---|
-| `DATABASE_URL` | (required) | Full Postgres connection string |
-| `DATABASE_URL_FILE` | unset | Path to a file containing the URL; takes precedence over `DATABASE_URL` |
-| `REDIS_URL` | (required) | Full Redis connection string |
-| `REDIS_URL_FILE` | unset | Path to a file containing the URL |
-| `RUST_LOG` | `info` | Log level; supports per-module overrides, e.g. `info,semanticd::pipeline=debug` |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | unset | Enables OTLP trace export when set |
-| `OTEL_SERVICE_NAME` | `semantic-firewall` | Service name for traces |
-| `OTEL_TRACES_SAMPLER_ARG` | `0.0` | Sample rate `[0, 1]` |
+| `SEMANTICD_ADMIN_USERNAME` | `admin` | Initial admin username |
+| `SEMANTICD_ADMIN_PASSWORD` | `admin` | **Change this in any non-dev deployment** |
+| `SEMANTICD_ADMIN_EMAIL` | unset | Stored on the user row; informational |
 
-## Server
+If the admin user is created with the default password, the gateway logs a warning at startup. Rotate via the management API (`POST /manage/users/{id}/change-password`) or via the dashboard.
 
-| Variable | TOML key | Default |
+## JWT signing
+
+| Variable | Default | Notes |
 |---|---|---|
-| `UNICITY_SERVER_API_PORT` | `server.api_port` | `8080` |
-| `UNICITY_SERVER_DASHBOARD_PORT` | `server.dashboard_port` | `8081` |
-| `UNICITY_SERVER_BIND_ADDRESS` | `server.bind_address` | `0.0.0.0` |
+| `SIF_JWT_SECRET` | random per-boot (warning logged) | HMAC-SHA256 secret for management-API JWTs. **Required** for sessions to survive restarts. |
 
-## Database
+The `SIF_*` prefix here is legacy; the value is the JWT signing secret. Set a long random string in production (e.g. `head -c 32 /dev/urandom | base64`).
 
-| Variable | TOML key | Default |
+## `migrate` subcommand
+
+| Variable | CLI flag | Notes |
 |---|---|---|
-| `UNICITY_DATABASE_URL` (alias `DATABASE_URL`) | `database.url` | — |
-| `UNICITY_DATABASE_MAX_CONNECTIONS` | `database.max_connections` | `20` |
-| `UNICITY_DATABASE_STATEMENT_TIMEOUT_MS` | `database.statement_timeout_ms` | `5000` |
+| `DATABASE_URL` | `--database-url` | Connection string used by the standalone migration runner. **Not** `SEMANTICD_DATABASE_URL` here. |
 
-## Redis
+## Generic config override (`SEMANTICD__*` — double underscore)
 
-| Variable | TOML key | Default |
-|---|---|---|
-| `UNICITY_REDIS_URL` (alias `REDIS_URL`) | `redis.url` | — |
-| `UNICITY_REDIS_POOL_SIZE` | `redis.pool_size` | `10` |
-
-## Rules
-
-| Variable | TOML key | Default |
-|---|---|---|
-| `UNICITY_RULES_DIRECTORY` | `rules.directory` | `/etc/unicity/rules` |
-| `UNICITY_RULES_WATCH` | `rules.watch` | `true` |
-
-## Security
-
-| Variable | TOML key | Default |
-|---|---|---|
-| `UNICITY_SECURITY_ENCRYPTION_KEY` | `security.encryption_key` | — |
-| `UNICITY_SECURITY_ENCRYPTION_KEY_FILE` | `security.encryption_key_file` | — |
-
-## Telemetry
-
-| Variable | TOML key | Default |
-|---|---|---|
-| `UNICITY_TELEMETRY_METRICS_ENABLED` | `telemetry.metrics_enabled` | `true` |
-| `UNICITY_TELEMETRY_TRACES_ENABLED` | `telemetry.traces_enabled` | `false` |
-| `UNICITY_TELEMETRY_TRACES_ENDPOINT` | `telemetry.traces_endpoint` | — |
-
-## Naming convention for unlisted keys
-
-For any TOML key not listed above:
+Any key in [`config.toml`](config-toml.md) can be overridden by an env var with **double-underscore segment separators**:
 
 ```
-TOML key:    foo.bar_baz
-Env var:     UNICITY_FOO_BAR_BAZ
+TOML key                         Env var
+server.bind                  →   SEMANTICD__SERVER__BIND
+server.cors_enabled          →   SEMANTICD__SERVER__CORS_ENABLED
+server.cors_origins          →   SEMANTICD__SERVER__CORS_ORIGINS   # comma-separated list
+database.url                 →   SEMANTICD__DATABASE__URL
+database.max_connections     →   SEMANTICD__DATABASE__MAX_CONNECTIONS
+engine.global_timeout_ms     →   SEMANTICD__ENGINE__GLOBAL_TIMEOUT_MS
+telemetry.tracing.level      →   SEMANTICD__TELEMETRY__TRACING__LEVEL
 ```
 
-Uppercase, replace dots with underscores, prefix with `UNICITY_`. Boolean values accept `true`/`false`/`1`/`0`.
+Boolean values accept `true` / `false` / `1` / `0`. List values are comma-separated. The override layer can't introduce keys that don't exist in the schema — invalid keys are ignored with a warning.
 
 ## Precedence
 
-When the same setting is provided in multiple places, precedence is:
+When the same setting is provided in multiple places:
 
-1. **Environment variable** — highest
-2. **`config.toml`**
-3. **Compiled default** — lowest
+1. **CLI flag** — highest
+2. **Dedicated env var** (e.g. `SEMANTICD_PORT`)
+3. **Generic override** (e.g. `SEMANTICD__SERVER__BIND`)
+4. **`config.toml`**
+5. **Compiled default** — lowest
 
-This lets you commit a baseline `config.toml` to VCS and override per-environment values via the env.
+This lets you ship a baseline `config.toml` and override per-environment via env vars or per-invocation via CLI.
 
-## What env vars cannot set
+## What is **not** an env var
 
-Nested arrays (`[[policies]]`, the per-detector blocks, the threshold maps inside policies). Edit `config.toml` for those.
+- **Policies, rules, API keys, users.** Managed via the dashboard / management API, persisted in Postgres. See [Management endpoints](../api/management-endpoints.md).
+- **Per-policy thresholds.** Persisted with the policy row. Not in env vars or `config.toml`.
 
 ## Related
 
-- [Reference → config.toml](config-toml.md) — every TOML key.
-- [Operations → Auth and secrets](../operations/auth-and-secrets.md) — file-based secret injection.
+- [Reference → config.toml](config-toml.md) — the underlying schema.
+- [HTTP API → Health and status](../api/health-and-status.md) — the three-port architecture set by `SEMANTICD_PORT` / `SEMANTICD_MANAGE_PORT` / `SEMANTICD_METRICS_PORT`.
+- [Operations → Auth and secrets](../operations/auth-and-secrets.md) — secret management patterns for `SIF_JWT_SECRET` and `SEMANTICD_ADMIN_PASSWORD`.
