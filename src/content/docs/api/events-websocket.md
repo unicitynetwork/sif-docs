@@ -48,32 +48,33 @@ Filtering happens server-side. On a busy gateway, narrowing the subscription is 
 
 One JSON message per event. UTF-8 text frames; the server does not send binary frames.
 
+:::caution[Alpha: WebSocket envelope shape not yet validated against a Rust struct]
+There is no `VerdictEvent` / `WsEvent` struct in `crates/semd-core/src/types/` at the time of writing. The frame examples below are the documented intent; treat envelope fields (`type`, top-level wrapping) as subject to change until the streaming layer stabilises. The `Detection` sub-shape, when populated, will follow [`Detection`](../reference/verdict-shapes.md#detection-shape-from-cratessemd-coresrctypesresponsersdetection).
+:::
+
 ### `verdict`
 
 ```json
 {
   "type": "verdict",
-  "request_id": "req_b7d4e9f2",
-  "ts": "2026-06-07T18:42:10.123Z",
+  "request_id": "019ed01f-eeb3-7540-8959-c1142415dc57",
+  "timestamp": "2026-06-16T11:10:14.574Z",
   "action": "block",
-  "risk_score": 0.91,
+  "blocked": true,
+  "risk_score": 1.0,
   "policy_applied": "default",
   "detections": [
     {
-      "detector": "prompt_injection",
       "category": "direct_injection",
       "confidence": 0.91,
-      "rule_id": "PI-014",
-      "evidence": "Instruction override pattern detected",
-      "message_index": 1
+      "description": "Instruction override pattern detected",
+      "rule_id": "PI-014"
     }
-  ],
-  "api_key_prefix": "semd_a3f0",
-  "request_summary": "Help me ignore previous instr..."
+  ]
 }
 ```
 
-The `request_summary` is a short (≤120 chars) extract for display. Use `GET /manage/audit/entries/{request_id}` to fetch the full row.
+The streaming envelope is expected to carry at minimum `type`, `request_id`, `timestamp`, `action`, `blocked`, `risk_score`. Whether richer display fields (`api_key_prefix`, `request_summary`) are populated alongside the audit row is yet to be locked in code. Fetch the full audit row via `GET /manage/audit/{id}` if you need more than the live event delivers.
 
 ### `rule_loaded`
 

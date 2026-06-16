@@ -46,42 +46,51 @@ Content-Type: application/json
 
 ## Response
 
+:::caution[Alpha: batch envelope not yet validated against a Rust struct]
+There is no `BatchGuardResponse` struct in `crates/semd-core/src/types/` at the time of writing — only the per-item shape (single-guard `GuardResponse`) is grounded in code. The wrapper shape below is the documented intent; treat it as subject to change until the alpha hardens.
+:::
+
 ```json
 {
-  "request_id": "batch_a3f0c8e1",
+  "request_id": "batch_…",
   "results": [
     {
       "id": "row-1",
-      "request_id": "req_8a3f0c8e",
+      "request_id": "019ed01f-…",
       "action": "allow",
+      "blocked": false,
       "risk_score": 0.02,
-      "detections": [],
-      "latency_ms": 6,
-      "policy_applied": "default"
+      "processing_time_ms": 6
     },
     {
       "id": "row-2",
-      "request_id": "req_b7d4e9f2",
+      "request_id": "019ed020-…",
       "action": "block",
-      "risk_score": 0.91,
+      "blocked": true,
+      "risk_score": 1.0,
       "detections": [
-        {"detector": "prompt_injection", "confidence": 0.91, "rule_id": "PI-014"}
+        {
+          "category": "direct_injection",
+          "confidence": 0.91,
+          "description": "Instruction override pattern detected",
+          "rule_id": "PI-014"
+        }
       ],
-      "latency_ms": 9,
-      "policy_applied": "default"
+      "processing_time_ms": 9,
+      "policy_applied": "default",
+      "timestamp": "2026-06-16T11:10:14.574Z"
     }
-  ],
-  "total_latency_ms": 14
+  ]
 }
 ```
 
-Each `results[]` entry has the same shape as a single-guard response, plus the echoed `id`. Order matches the request — `results[i]` corresponds to `items[i]`.
+Each `results[]` entry follows the [single-guard response shape](guard-endpoint.md#response-allow) (a full `GuardResponse`) plus the echoed `id`. Order matches the request — `results[i]` corresponds to `items[i]`. Empty `detections` / `policy_applied` / etc. are omitted by `serde` as they are for the single-guard form.
 
 The batch itself gets a `request_id` for tracing. Each item also gets its own `request_id` and is recorded as a separate audit row.
 
 ## Concurrency
 
-Items in a batch run in parallel, up to the gateway's per-batch concurrency limit (default 16). The `total_latency_ms` is approximately the slowest item plus a small overhead — not the sum.
+Items in a batch run in parallel, up to the gateway's per-batch concurrency limit (default 16). The wall-clock latency of the call is approximately the slowest item plus a small overhead — not the sum. The per-item `processing_time_ms` field reflects each item's individual server-side cost.
 
 ## Errors
 

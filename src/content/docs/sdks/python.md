@@ -22,10 +22,10 @@ client = SemanticFirewall(
 )
 
 result = client.guard("Hello, how are you?")
-if result.is_blocked:
-    print("Blocked:", result.detections[0].description)
+if result.blocked:
+    print("Blocked. Request id:", result.request_id)
 elif result.is_flagged:
-    print("Flagged:", result.detections)
+    print(f"Flagged at risk={result.risk_score:.2f}")
 else:
     print("Safe")
 ```
@@ -68,21 +68,25 @@ result = client.guard([
 
 ## Response
 
+Matches the wire shape defined by [`GuardResponse`](https://github.com/unicitynetwork/semanticd/blob/main/crates/semd-core/src/types/response.rs) on the server. Fields the server omits (`detections` when empty, `policy_applied` when null, etc.) are exposed as their type's default in Python.
+
 ```python
 @dataclass
 class GuardResponse:
     request_id: str
-    action: str               # "allow", "flag", "modify", "block"
+    action: str                          # "allow", "flag", "modify", "block"
+    blocked: bool                        # action == "block"
     risk_score: float
-    detections: list[Detection]
-    modified_messages: list[dict] | None
-    latency_ms: int
-    policy_applied: str
+    detections: list[Detection]          # may be empty
+    processing_time_ms: int
+    policy_applied: str | None
+    degraded: bool | None
+    timestamp: datetime | None
+    versions: AnalysisVersions | None
+    modified_content: str | None         # only when action == "modify"
 
     @property
-    def is_blocked(self) -> bool: ...
-    @property
-    def is_flagged(self) -> bool: ...    # action in ("flag", "modify")
+    def is_flagged(self) -> bool: ...    # action in ("flag", "modify", "block")
 ```
 
 ## Detection

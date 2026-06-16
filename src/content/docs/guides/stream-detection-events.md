@@ -25,28 +25,25 @@ In `--dev-mode` no auth is required. In any other mode an unauthenticated upgrad
 
 ## Event shape
 
-Each event is a single JSON message:
+Each event is a single JSON message. See [HTTP API → Events WebSocket](../api/events-websocket.md) for the source-of-truth shape and the alpha-pending caveat — there's currently no `WsEvent` Rust struct, so the envelope below is the documented intent.
 
 ```json
 {
   "type": "verdict",
-  "request_id": "req_b7d4e9f2",
-  "ts": "2026-06-07T18:42:10.123Z",
+  "request_id": "019ed01f-eeb3-7540-8959-c1142415dc57",
+  "timestamp": "2026-06-16T11:10:14.574Z",
   "action": "block",
-  "risk_score": 0.91,
+  "blocked": true,
+  "risk_score": 1.0,
   "policy_applied": "default",
   "detections": [
     {
-      "detector": "prompt_injection",
       "category": "direct_injection",
       "confidence": 0.91,
-      "rule_id": "PI-014",
-      "evidence": "Instruction override pattern detected",
-      "message_index": 1
+      "description": "Instruction override pattern detected",
+      "rule_id": "PI-014"
     }
-  ],
-  "api_key_prefix": "semd_a3f0",
-  "request_summary": "Help me ignore previous instr..."
+  ]
 }
 ```
 
@@ -99,7 +96,7 @@ asyncio.run(main())
 
 ## Operational notes
 
-- **Reconnection** — the server sends ping frames every 30 s. If the connection drops, reconnect with exponential backoff. The stream does not replay missed events; for guaranteed delivery, pair with periodic polls of `GET /manage/audit/entries`.
+- **Reconnection** — the server sends ping frames every 30 s. If the connection drops, reconnect with exponential backoff. The stream does not replay missed events; for guaranteed delivery, pair with periodic polls of `GET /manage/audit`.
 - **Backpressure** — the server buffers up to 1000 events per connection. Slow consumers exceeding the buffer are disconnected with code 1009 (message too big) or 1011 (server error). Don't do heavy work in the receive loop; hand off to a queue.
 - **Multiple consumers** — every connected consumer sees every matching event. There is no fan-out partitioning; if you need per-consumer guarantees, build them in your consumer layer.
 - **Volume** — at sustained high traffic (>500 rps) consider polling the audit endpoint instead. The stream is designed for low-latency review and dashboards, not for bulk log shipping.
