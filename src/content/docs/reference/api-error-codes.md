@@ -1,78 +1,112 @@
 ---
 title: API error codes
-description: Every error the HTTP API can return — cause and fix.
+description: Every error the HTTP API can return — envelope, codes, and cause.
 ---
 
-Every error response is JSON with an `error` field and optional context fields. Status codes follow HTTP conventions; the `error` string is the stable, machine-readable identifier.
+Grounded in [`crates/semd-core/src/error.rs::ErrorCode`](https://github.com/unicitynetwork/semanticd/blob/main/crates/semd-core/src/error.rs) (the enum) and [`crates/semd-api/src/error.rs::ApiError`](https://github.com/unicitynetwork/semanticd/blob/main/crates/semd-api/src/error.rs) (the per-variant HTTP status mapping).
+
+## Error envelope
+
+Every error response from `/api/v1/*` and `/manage/*` shares the same JSON shape:
 
 ```json
-{ "error": "rate_limit_exceeded", "limit_rpm": 60 }
+{
+  "error": {
+    "code": "RATE_LIMITED",
+    "message": "Rate limit exceeded for this API key.",
+    "request_id": "019ed01f-…",
+    "retry_after_ms": 17000
+  }
+}
 ```
 
-## Authentication errors (4xx)
+| Field | Always present | Meaning |
+|---|---|---|
+| `error.code` | yes | One of the seven values below |
+| `error.message` | yes | Human-readable explanation |
+| `error.request_id` | yes | Correlate with the audit log |
+| `error.retry_after_ms` | only on `RATE_LIMITED` | How many ms to wait before retrying |
 
-| Status | `error` | Cause | Fix |
+Two optional top-level fields appear only in specific cases:
+
+| Field | When | Meaning |
+|---|---|---|
+| `action` | Fail-open responses | The gateway hit an internal error but chose to let the caller proceed. Value is `"allow"`. |
+| `degraded` | Pipeline partial failure | `true` when part of the detection pipeline failed and the response is best-effort. |
+
+Example of a fail-open error (typically returned with HTTP 200, **not** an HTTP error):
+
+```json
+{
+  "error": { "code": "INTERNAL_ERROR", "message": "Detector inference failed", "request_id": "019ed01f-…" },
+  "action": "allow",
+  "degraded": true
+}
+```
+
+## The seven error codes
+
+Wire format is `SCREAMING_SNAKE_CASE`. Every error in every endpoint resolves to one of these:
+
+| `error.code` | HTTP status | What it means | Typical fix |
 |---|---|---|---|
-| `401` | `missing_credentials` | No `Authorization` / `X-API-Key` header | Add the header |
-| `401` | `invalid_key` | Key does not match any registered secret | Re-issue the key |
-| `401` | `expired` | Key was valid but past its expiry | Rotate via [Settings](../dashboard/settings-page.md) |
-| `403` | `key_disabled` | Key is on file but disabled | Re-enable from [Settings](../dashboard/settings-page.md) |
-| `403` | `key_revoked` | Key was revoked | Issue a new key |
-| `403` | `insufficient_scope` | Key's policy does not grant the required scope (e.g. `manage` on `/manage/*`) | Use a key whose policy includes the scope |
-| `429` | `rate_limit_exceeded` | Per-key rate limit exceeded | Wait per `Retry-After` header; raise the key's `rate_limit_rpm` if persistent |
+| `INVALID_REQUEST` | `400` | Body malformed, required field missing, query parameter invalid, **or** resource not found (the API collapses 404s into `INVALID_REQUEST`) | Inspect `error.message`; fix the request |
+| `UNAUTHORIZED` | `401` | No `Authorization` / `X-API-Key` header, or the supplied key did not validate | Mint or rotate the key — see [Add and rotate API keys](../guides/add-and-rotate-api-keys.md) |
+| `FORBIDDEN` | `403` | Authenticated but not permitted (e.g. management endpoint called with a guard-only key) | Use a key / JWT with the right scope |
+| `RATE_LIMITED` | `429` | Per-key rate limit exceeded | Honour `error.retry_after_ms`; raise the key's `rate_limit_rpm` if persistent |
+| `PAYLOAD_TOO_LARGE` | `413` | Body size exceeds `server.request_body_limit` | Send smaller messages or raise the limit ([Reference → config.toml](config-toml.md)) |
+| `INTERNAL_ERROR` | `500` | Unhandled exception, detector failure, or generic server-side error | Check the gateway logs; the `request_id` correlates with `tracing` output |
+| `SERVICE_UNAVAILABLE` | `503` | Dependency (Postgres / Redis / model) unreachable, or the gateway is shutting down | Retry with backoff; check dependency health |
 
-## Request validation (4xx)
+> The `ApiError` enum in `semd-api` distinguishes more cases internally (e.g. `BadRequest` vs `NotFound`, `Timeout` vs `Unavailable`), but the wire layer maps them all into the seven codes above via [`ApiError::error_code()`](https://github.com/unicitynetwork/semanticd/blob/main/crates/semd-api/src/error.rs).
 
-| Status | `error` | Cause | Fix |
-|---|---|---|---|
-| `400` | `invalid_messages` | `messages` missing, empty, or malformed | Send at least one message with `role` and `content` |
-| `400` | `invalid_role` | Message `role` is not `system`/`user`/`assistant` | Use a recognised role |
-| `400` | `too_many_messages` | Message count exceeds policy `max_messages` | Truncate the message list |
-| `400` | `invalid_batch` | Batch `items` missing, empty, or > 100 | Send 1–100 items |
-| `400` | `invalid_item` | A batch item is malformed | Fix the offending item; the batch is rejected as a whole |
-| `400` | `invalid_policy` | `config.policy` references a non-existent policy | Use an existing policy name |
-| `400` | `invalid_query` | Management endpoint received bad query parameters | See [Management endpoints](../api/management-endpoints.md) |
-| `413` | `payload_too_large` | Total body size exceeds `request_body_max_bytes` | Send smaller messages or raise the limit |
+## Rate-limit response in detail
 
-## Server errors (5xx)
+When a key exceeds `rate_limit_rpm`:
 
-| Status | `error` | Cause | Fix |
-|---|---|---|---|
-| `500` | `internal_error` | Unhandled exception in the gateway | Check the gateway logs |
-| `502` | `redis_unreachable` | Redis connection failed mid-request | Restart Redis; check the network |
-| `503` | `not_ready` | Gateway started but not yet ready (rules still loading) | Wait; retry |
-| `503` | `pipeline_timeout` | Detection pipeline exceeded `global_timeout_ms` | See [Troubleshooting](../operations/troubleshooting.md) |
-| `503` | `degraded` | Required detector degraded and policy `fail_mode = block` | See [Troubleshooting](../operations/troubleshooting.md) |
-| `503` | `postgres_unreachable` | Database connection failed | Check database health |
+```http
+HTTP/1.1 429 Too Many Requests
+Content-Type: application/json
 
-## Management-specific (4xx)
+{
+  "error": {
+    "code": "RATE_LIMITED",
+    "message": "Rate limit exceeded for this API key.",
+    "request_id": "019ed01f-…",
+    "retry_after_ms": 17000
+  }
+}
+```
 
-| Status | `error` | Endpoint | Cause |
-|---|---|---|---|
-| `404` | `rule_not_found` | `/manage/rules/{id}` | No rule with that ID |
-| `404` | `policy_not_found` | `/manage/policies/{name}` | No policy with that name |
-| `404` | `key_not_found` | `/manage/keys/{id}` | No key with that ID |
-| `409` | `policy_in_use` | `DELETE /manage/policies/{name}` | At least one API key still references the policy |
-| `409` | `duplicate_name` | `POST /manage/policies` or `/manage/keys` | A resource with that name already exists |
-| `422` | `rule_parse_error` | `POST /manage/rules` | Uploaded rule failed to parse |
+`retry_after_ms` is in milliseconds. The standard HTTP `Retry-After` header may or may not be set; trust `error.retry_after_ms` first. SDK clients honour it automatically.
 
 ## WebSocket close codes
 
+The streaming connection uses standard WebSocket close codes — these are not part of the JSON error envelope.
+
 | Code | Meaning | Action |
 |---|---|---|
-| `1000` | Normal close | None |
-| `1008` | Policy violation (invalid query parameters) | Fix the URL |
-| `1009` | Message too big (backpressure) | Reconnect; consume faster, or use audit-poll instead |
-| `1011` | Server error | Check gateway logs; reconnect |
-| `4001` | Auth failed | Check the API key in the upgrade headers |
-| `4029` | Rate limited | Honour the implicit backoff; reconnect after some seconds |
+| `1000` | Normal closure | None |
+| `1009` | Message too big — server buffered too far ahead of a slow consumer | Reconnect; consume faster, or poll `/manage/audit` instead |
+| `1011` | Server error on the broadcast side | Check gateway logs; reconnect |
+
+Other 1xxx codes follow the WebSocket spec. The gateway does **not** issue custom 4xxx close codes today; auth failures happen during the HTTP upgrade and return 401 there.
+
+## What is **not** in this catalogue
+
+- No `not_ready`, `pipeline_timeout`, `redis_unreachable`, `postgres_unreachable` distinct error codes — all of those collapse to `INTERNAL_ERROR` or `SERVICE_UNAVAILABLE` on the wire, with the distinguishing detail in `error.message`.
+- No `key_disabled` / `key_revoked` distinction — both surface as `UNAUTHORIZED` with a more specific message.
+- No 404 `*_not_found` codes — the gateway returns 404 but the wire `error.code` is `INVALID_REQUEST`. Read `error.message` to know which resource.
+- No 409 `policy_in_use` / `duplicate_name` codes — current behaviour collapses to `INVALID_REQUEST`.
+
+These distinctions may be added (existing codes won't be renamed). Current alpha behaviour matches the table above.
 
 ## Stability promise
 
-The `error` strings above are stable. New error values may be added; existing values will not be renamed or repurposed without a deprecation window.
+The seven `code` values are stable for the alpha. New codes may be added; existing codes will not be renamed or repurposed. Message strings are **not** stable — parse on `code`, surface `message` for humans.
 
 ## Related
 
 - [HTTP API → Authentication](../api/authentication.md) — auth-error context.
-- [Operations → Troubleshooting](../operations/troubleshooting.md) — runbook for `5xx` responses.
+- [Operations → Troubleshooting](../operations/troubleshooting.md) — runbook for 5xx responses.
 - [HTTP API → Guard endpoint](../api/guard-endpoint.md) — request-validation errors.

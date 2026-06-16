@@ -41,7 +41,7 @@ def ask(user_text: str) -> str:
         # Network or server error — decide fail-open or fail-closed
         raise
 
-    if result.is_blocked:
+    if result.blocked:
         return f"Request rejected: {result.detections[0].description}"
 
     if result.is_flagged:
@@ -56,10 +56,13 @@ The `guard()` call returns a response with:
 | Attribute | Meaning |
 |---|---|
 | `result.action` | `"allow"`, `"flag"`, `"modify"`, or `"block"` |
-| `result.is_blocked` | Convenience boolean for `action == "block"` |
-| `result.is_flagged` | Convenience boolean for `action in ("flag", "modify")` |
-| `result.detections` | List of detections: `category`, `confidence`, `description`, `rule_id` |
-| `result.modified_messages` | Present when `action == "modify"` — use these instead of the originals |
+| `result.blocked` | Boolean — `true` iff `action == "block"` (mirrors the wire field) |
+| `result.is_flagged` | SDK convenience: `True` for `action in ("flag", "modify", "block")` |
+| `result.risk_score` | Float `[0.0, 1.0]` |
+| `result.detections` | List of `Detection` objects: `category`, `confidence`, `description`, `rule_id` |
+| `result.modified_content` | Present when `action == "modify"` — the preprocessed + redacted form of the combined request, as a single string. Use this instead of the originals |
+| `result.processing_time_ms` | Server-side latency in ms |
+| `result.policy_applied` | Name of the policy that decided the verdict |
 | `result.request_id` | Correlation ID, also visible in the dashboard |
 
 ## Without the SDK — direct HTTP
@@ -89,7 +92,7 @@ response_check = guard.guard([
     {"role": "assistant", "content": model_text},
 ])
 
-if response_check.is_blocked:
+if response_check.blocked:
     return "Model response withheld."
 
 return model_text

@@ -53,13 +53,13 @@ response = call_llm(user_text)
 
 In a user-facing app this might look like: the user gets their answer, your audit log records that the prompt was suspicious, and someone reviews the flagged traffic out-of-band on the [Threats page](../dashboard/threats-page.md).
 
-## Pattern 3 — Use the modified prompt
+## Pattern 3 — Use the modified content
 
-When `action == "modify"`, the response contains a `modified_messages` field. Forward those, not the originals:
+When `action == "modify"`, the response contains a `modified_content` field — the preprocessed + redacted form of the combined request, as a single string. Forward that to the LLM, not the original `messages`:
 
 ```python
 if result.action == "modify":
-    prompt_to_forward = result.modified_messages
+    prompt_to_forward = result.modified_content
 else:
     prompt_to_forward = original_messages
 

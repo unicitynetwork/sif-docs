@@ -13,24 +13,28 @@ This is purely a UX convention — at the API level, an `allow` verdict is recor
 
 ## Audit row contents
 
-A row stored against `manage.audit_entries` contains:
+A row stored against the audit table contains (live shape as returned by `GET /manage/audit`):
 
 | Field | Notes |
 |---|---|
-| `request_id` | Unique per call. Surfaces in dashboards, logs, SIEM. The correlation key |
-| `timestamp` | Server-side, UTC, millisecond precision |
-| `api_key_prefix` | First 8 characters of the key. Full secret never persisted |
-| `policy_applied` | The name of the policy used |
+| `id` | UUID of the row. Used to fetch a single row via `GET /manage/audit/{id}` |
+| `request_id` | UUIDv7 of the call. Correlate with dashboards, logs, SIEM |
+| `event_type` | `guard_request` for regular calls |
+| `timestamp` | Server-side, UTC |
+| `api_key_id` | The `key_prefix` of the API key used. Full secret never persisted |
+| `policy_id` | The policy used for thresholds |
 | `action` | `allow`, `flag`, `modify`, or `block` |
-| `risk_score` | The combined score, `[0, 1]` |
-| `detections` | JSONB array of `{category, confidence, rule_id, evidence, span}` |
+| `risk_score` | The combined score, `[0.0, 1.0]` |
+| `detections` | Array of `Detection` objects (`category`, `confidence`, `description`, `rule_id`). Currently empty on alpha — see [Verdict shapes](../reference/verdict-shapes.md) |
 | `message_count` | Number of messages in the request |
-| `latency_ms` | Wall-clock latency of the guard call |
+| `total_chars` | Total combined content length |
+| `latency_ms` | Server-side latency (mirrors the response's `processing_time_ms`) |
 | `ruleset_version` | The rule revision in force when this call ran |
-| `modified_messages` | Present only for `action = modify` |
-| `error` | Non-null when a detector errored or timed out |
+| `degraded` | `true` when the pipeline partially failed and the response was fail-open |
+| `client_ip`, `user_agent` | Connection metadata |
+| `app_id`, `user_id`, `session_id` | Optional caller-supplied trace identifiers |
 
-The full request body is **not** persisted by default — only `message_count` and an optional short snippet. To capture full bodies for compliance, enable `audit_full_body = true` on the policy (warning: storage cost). See [Reference → config.toml](../reference/config-toml.md).
+The full request body is **not** persisted by default — only `message_count`, `total_chars`, and (when configured) a short snippet. To capture full bodies for compliance, enable `audit_full_body = true` on the policy. See [Reference → config.toml](../reference/config-toml.md).
 
 ## What's redacted
 
@@ -51,16 +55,17 @@ The two are kept consistent: the WebSocket event is published **after** the audi
 
 ## Querying
 
-Main entry points:
+Main entry points (the audit surface is documented in [HTTP API → Management endpoints](../api/management-endpoints.md)):
 
 | Need | Use |
 |---|---|
-| Recent threats by action | `GET /manage/audit/entries?action=block&page_size=50` |
-| Single verdict by ID | `GET /manage/audit/entries?request_id=req_b7d4e9f2` |
+| Recent threats by action | `GET /manage/audit?action=block&limit=50` |
+| Single audit row by row UUID | `GET /manage/audit/{id}` |
+| Audit row by `request_id` | `GET /manage/audit/by-request/{request_id}` |
 | Hourly volume buckets | `GET /manage/audit/stats/hourly` |
-| All traffic for one key | `GET /manage/audit/entries?key_prefix=semd_a3f0` |
+| All traffic for one key | `GET /manage/audit?key_prefix=semd_live_a3f0` |
 
-The `since` and `until` parameters accept ISO-8601 timestamps. See [HTTP API → Management endpoints](../api/management-endpoints.md) for the full schema.
+The `since` and `until` parameters accept ISO-8601 timestamps.
 
 ## Retention
 
