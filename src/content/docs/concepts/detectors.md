@@ -11,57 +11,63 @@ Detectors fall into two main types: a) pattern matching (rule or string matching
 
 ### What a detector emits
 
-A detection is:
+A detection is shaped per [`Detection`](https://github.com/unicitynetwork/semanticd/blob/main/crates/semd-core/src/types/response.rs):
 
 ```json
 {
-  "category": "prompt_injection",
+  "category": "injection",
   "confidence": 0.91,
-  "rule_id": "PI-014",
-  "evidence": "Instruction override pattern detected",
-  "message_index": 1,
-  "span": [42, 78]
+  "description": "Instruction override pattern detected",
+  "rule_id": "PI-014"
 }
 ```
 
 | Field | Meaning |
 |---|---|
-| `category` | A label that policies aggregate against. See [Reference → Detection categories](../reference/detection-categories.md). |
-| `confidence` | A score in `[0, 1]`. Source-specific: rule-based detectors derive it from rule severity; ML detectors output it from the classifier directly. |
-| `rule_id` | For rule-based detectors, the matched rule's ID. `null` for ML detectors. |
-| `evidence` | A short human-readable summary, surfaced in the dashboard. |
-| `message_index` | Which message in the request triggered the detection. |
-| `span` | Optional character offsets in the message body. |
+| `category` | A label that policies aggregate against. See [Reference → Detection categories](../reference/detection-categories.md). Built-ins emit `injection`, `jailbreak`, `pii`, or `yara`. |
+| `confidence` | A score in `[0.0, 1.0]`. Source-specific: rule-based detectors derive it from rule severity; ML detectors output it from the classifier directly. |
+| `description` | A short human-readable summary, surfaced in the dashboard and audit row. |
+| `rule_id` | For rule-based detectors, the matched rule's ID. Omitted from the wire when `null` (e.g. ML detectors). |
 
-A detector can emit zero, one, or many detections per request.
+A detector can emit zero, one, or many detections per request. The wire `Detection` is intentionally minimal — no `evidence` blob, no `message_index`, no `span`. Richer per-detection metadata lives in the persisted audit row.
 
-### The five built-in families
+### The built-in detector families
 
-#### `regex`
+The in-tree detectors live in [`crates/semd-engine/src/detectors/`](https://github.com/unicitynetwork/semanticd/tree/main/crates/semd-engine/src/detectors). Each emits one or more **categories** on the wire — see [Detection categories](../reference/detection-categories.md) for the full mapping.
 
-Compiled regular expressions, evaluated on every message body. Cheapest detector — sub-millisecond per message at typical sizes. Best for known strings: specific exploit phrases, brand mentions, blocked keywords.
+#### `regex_detector`
 
-Configured via `.regex` files in the gateway's rules directory.
+Compiled regular expressions, evaluated on every message body. Cheapest detector — sub-millisecond per message at typical sizes. Category is per-rule configurable; common values: `injection`, `jailbreak`, or a custom string.
 
-#### `yara` (YARA-X)
+Best for known strings: specific exploit phrases, brand mentions, blocked keywords. Configured via per-rule YAML in the rules directory ([Rules](rules.md)).
 
-Pattern combinations with logical operators. Strictly more expressive than regex — supports `and` / `or` between named patterns, bracketed conditions, modifiers (`nocase`, `wide`). Best for cases where a single regex would be too permissive or too brittle.
+#### `keyword`
+
+Aho-Corasick-style multi-pattern matcher. Category is per-rule configurable. Very low latency for thousands of keywords. Good when you have a static block-list.
+
+#### `rule_engine`
+
+The unified rule-engine pipeline emitting `injection` and `jailbreak` categories from in-tree pattern rules. Used as the workhorse for the built-in detection coverage.
+
+#### `yara_detector` (YARA-X)
+
+Pattern combinations with logical operators. Strictly more expressive than regex — supports `and` / `or` between named patterns, bracketed conditions, modifiers (`nocase`, `wide`). Default category is `yara`; per-rule override via `meta: category = "..."` (rule authors typically set `injection` / `jailbreak` / a custom category).
 
 Configured via `.yar` files. See [Rules](rules.md) for the format and [How-to → Write a custom YARA rule](../guides/write-a-custom-yara-rule.md) for the recipe.
 
-#### `pii_scanner`
+#### `dlp_scanner`
 
-Built around identifier matchers (SSN, credit card, email, phone, API-key shapes). Higher false-positive rate than regex on its own — usually paired with bracketed rules so the matcher only fires in context. Latency: low-millisecond.
+The DLP / PII matcher. Built around entity-type detectors (SSN, credit card, email, phone, IP address). All five entity types collapse to the single `pii` category on the wire; the specific entity type is in the `description` field.
 
-This detector is also the source of `action: modify` verdicts — it can redact matched values and return the rewritten message list.
+This detector is the source of `action: modify` verdicts when redaction is enabled — it can rewrite the combined request as `modified_content`. Latency: low-millisecond.
 
-#### `prompt_injection_ml` and `jailbreak_ml`
+#### `ml_classifier`
 
-ONNX-backed classifiers. Each loads a fine-tuned model and emits a score in `[0, 1]` per message. **Opt-in** — only loaded when the gateway is built with the `ml` feature flag. Latency: 5–15 ms per message; significantly more on Intel CPUs.
+ONNX-backed classifier emitting `injection` and `jailbreak` categories. Loads a fine-tuned model per category and emits a confidence score in `[0.0, 1.0]` per message. **Opt-in** — only loaded when the gateway is built with the `ml` feature flag. Latency: 5–15 ms per message; significantly more on Intel CPUs.
 
-These detectors do not consult rule files. They are configured by which model file the gateway loads at startup, surfaced in the [Detectors page](../dashboard/detectors-page.md).
+Not configured via rule files. The model artefacts are configured at startup via `[engine.models.*]` in `config.toml` ([Reference → config.toml](../reference/config-toml.md)). Surfaced in the [Detectors page](../dashboard/detectors-page.md).
 
-#### `custom`
+#### Custom detectors
 
 Any detector that implements the adapter interface. Lives in the same evaluation pipeline as the built-ins; gets the same input; emits detections in the same shape. Build one when you need:
 
