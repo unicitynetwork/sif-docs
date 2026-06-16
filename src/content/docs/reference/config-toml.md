@@ -3,160 +3,174 @@ title: config.toml
 description: Every key in the gateway's configuration file.
 ---
 
-The gateway reads its configuration from a single TOML file. Path defaults to `/etc/unicity/config.toml`; override with `--config <path>`.
+Grounded in [`crates/semd-core/src/config.rs::AppConfig`](https://github.com/unicitynetwork/semanticd/blob/main/crates/semd-core/src/config.rs). The names and defaults below match `serde` exactly.
 
-Every key is optional unless marked otherwise. Defaults are listed.
+The gateway reads its configuration from a single TOML file. Path defaults to `./config.toml` (relative to the working directory); override with `--config <path>` or `SEMANTICD_CONFIG=<path>`.
+
+Every key has a default. The minimal valid `config.toml` is empty — the gateway boots on defaults.
 
 ## `[server]`
 
+Guard API listener. The management API and metrics endpoint bind on `bind`'s host with port `+1` and `+2` respectively unless overridden — see [Health and status](../api/health-and-status.md) for the three-port architecture.
+
 ```toml
 [server]
-api_port = 8080            # HTTP API listener
-dashboard_port = 8081      # Dashboard listener; ignored without the dashboard feature
-bind_address = "0.0.0.0"
-request_body_max_bytes = 1048576   # 1 MiB
+bind = "0.0.0.0:8080"        # host:port for the guard API
+workers = 0                   # 0 = num_cpus
+request_body_limit = "1MiB"   # accepts SI / IEC suffixes (KiB, MiB, GiB)
+request_timeout_ms = 30000
+cors_enabled = true
+cors_origins = []             # empty = allow all when cors_enabled=true
+```
+
+### `[server.tls]`
+
+```toml
+[server.tls]
+enabled = false
+cert = "/etc/semanticd/tls/cert.pem"
+key  = "/etc/semanticd/tls/key.pem"
 ```
 
 ## `[database]`
 
+Postgres connection pool.
+
 ```toml
 [database]
-url = "postgres://user:pass@host/db"   # required
+url = "postgres://semanticd:semanticd@localhost/semanticd"
 max_connections = 20
-statement_timeout_ms = 5000
-migration_timeout_ms = 60000
+min_connections = 1
+acquire_timeout_secs = 30
+idle_timeout_secs = 600
+run_migrations = true         # apply pending migrations at startup
 ```
-
-`url` is required. The other fields are tunables for high-throughput deployments.
 
 ## `[redis]`
 
 ```toml
 [redis]
-url = "redis://host:6379"   # required
-pool_size = 10
+url = "redis://localhost:6379"
+pool_size = 16
+connection_timeout_ms = 5000
 ```
 
-## `[rules]`
+## `[engine]`
+
+Detection-pipeline tuning.
 
 ```toml
-[rules]
-directory = "/etc/unicity/rules"
-watch = true
-reload_debounce_ms = 500
-```
-
-`watch = false` disables hot reload. Useful for deployments where the rules directory is immutable.
-
-## `[detectors]`
-
-Per-detector configuration. Only the keys differ per detector.
-
-```toml
-[detectors.regex]
-enabled = true
-
-[detectors.yara]
-enabled = true
-recursion_limit = 1000
-
-[detectors.pii_scanner]
-enabled = true
-redact = true              # rewrite messages with [REDACTED] markers
-
-[detectors.prompt_injection_ml]
-enabled = false            # requires the ml feature flag
-model_path = "/etc/unicity/models/prompt-injection-v3.onnx"
-threshold_floor = 0.3
-
-[detectors.jailbreak_ml]
-enabled = false
-model_path = "/etc/unicity/models/jailbreak-v2.onnx"
-threshold_floor = 0.3
-```
-
-## `[[policies]]`
-
-One block per policy. See [Concepts → Policies](../concepts/policies.md) for the model.
-
-```toml
-[[policies]]
-name = "default"
-is_default = true
-fail_mode = "allow"           # "allow" | "flag" | "block"
-global_timeout_ms = 200
-short_circuit = true
+[engine]
+global_timeout_ms = 5000               # whole-pipeline ceiling
+short_circuit = false                  # stop pipeline once a detector hits short_circuit_threshold
 short_circuit_threshold = 0.95
-aggregation_mode = "max"      # "max" | "weighted_sum"
-audit_full_body = false
-audit_retention_days = 90
-aggregate_retention_days = 365
-
-[policies.thresholds]
-prompt_injection  = { flag = 0.5, block = 0.8  }
-jailbreak         = { flag = 0.5, block = 0.85 }
-pii               = { flag = 0.7, block = 0.95 }
-data_exfiltration = { flag = 0.6, block = 0.85 }
-
-[policies.detectors]
-regex               = { enabled = true,  weight = 1.0 }
-yara                = { enabled = true,  weight = 1.0 }
-pii_scanner         = { enabled = true,  weight = 1.0 }
-prompt_injection_ml = { enabled = false, weight = 1.2 }
 ```
 
-## `[logging]`
+### `[engine.models]`
+
+ONNX runtime + per-model artifacts.
 
 ```toml
-[logging]
-level = "info"             # "trace" | "debug" | "info" | "warn" | "error"
-format = "json"            # "json" | "pretty"
+[engine.models]
+onnx_threads = 4
+onnx_inter_threads = 1
+
+[engine.models.prompt_injection]
+model     = "/var/lib/semanticd/models/prompt-injection.onnx"
+tokenizer = "/var/lib/semanticd/models/prompt-injection-tokenizer.json"
+max_tokens = 512
+window_overlap = 64
+
+[engine.models.jailbreak]
+model     = "/var/lib/semanticd/models/jailbreak.onnx"
+tokenizer = "/var/lib/semanticd/models/jailbreak-tokenizer.json"
+max_tokens = 512
+window_overlap = 64
+
+[engine.models.dlp_ner]
+model     = "/var/lib/semanticd/models/dlp-ner.onnx"
+tokenizer = "/var/lib/semanticd/models/dlp-ner-tokenizer.json"
+max_tokens = 256
+window_overlap = 32
 ```
 
-`pretty` is human-readable; use it only in development. `json` is what production log aggregators expect.
+The exact ML detectors that load depend on the cargo feature flags compiled into the binary; check `/version` for `features`.
+
+### `[engine.rules]`
+
+Where rule files are discovered and how reloads propagate.
+
+```toml
+[engine.rules]
+paths = ["/etc/semanticd/rules"]
+watch = true                                  # filesystem hot-reload
+redis_channel = "semanticd:rules:updated"     # pub/sub channel for cluster-wide reload
+```
+
+`watch = false` disables hot reload; useful for immutable-rules deployments.
 
 ## `[telemetry]`
 
 ```toml
 [telemetry]
-metrics_enabled = true
-metrics_path = "/metrics"
-traces_enabled = false
-traces_endpoint = "https://collector.example.com:4317"
-traces_sample_rate = 0.1
+prometheus_bind = "0.0.0.0:9090"
+audit_log_batch_size = 100
+audit_log_flush_interval_ms = 1000
 ```
 
-## `[security]`
+### `[telemetry.tracing]`
 
 ```toml
-[security]
-encryption_key = "..."     # 32-byte hex; required when audit_full_body = true
-encryption_key_file = "/run/secrets/encryption_key"   # alternative to inline
+[telemetry.tracing]
+level = "info"      # "trace" | "debug" | "info" | "warn" | "error"
+format = "pretty"   # "pretty" | "compact" | "json"
 ```
 
-Use `encryption_key_file` in production. Inline `encryption_key` is for dev only.
+Use `format = "json"` for production aggregators; `pretty` for dev.
 
-## Environment variable override
+## `[dashboard]`
 
-Any key can be overridden by an env var. The naming convention:
+The embedded SPA. Only relevant if the binary was built with the `dashboard` feature.
+
+```toml
+[dashboard]
+enabled = true
+path = "/dashboard"
+session_timeout_secs = 86400   # 24 h JWT lifetime
+```
+
+## What is **not** in the TOML
+
+- **Policies, rules, API keys, users** — these are managed via the dashboard / management API, persisted in Postgres, not via `config.toml`. See [Management endpoints](../api/management-endpoints.md).
+- **JWT signing secret** — currently read from `SIF_JWT_SECRET` env var only (no TOML key).
+- **Admin seeding** — read from `SEMANTICD_ADMIN_USERNAME` / `_PASSWORD` / `_EMAIL` env vars at first boot, not from `config.toml`.
+
+## Environment-variable overrides
+
+Nested keys can be overridden via env vars in the form `SEMANTICD__SECTION__KEY` (double underscores between segments). The override layer accepts lists as comma-separated values:
 
 ```
-TOML key:   server.api_port
-Env var:    UNICITY_SERVER_API_PORT
+SEMANTICD__SERVER__BIND=0.0.0.0:9080
+SEMANTICD__SERVER__CORS_ENABLED=true
+SEMANTICD__SERVER__CORS_ORIGINS=https://a.example.com,https://b.example.com
+SEMANTICD__DATABASE__MAX_CONNECTIONS=50
 ```
 
-Nested arrays (like `[[policies]]`) cannot be overridden via env vars — edit the file.
+For the simple "hostname / port / URL" cases, the dedicated env vars (`SEMANTICD_HOST`, `SEMANTICD_PORT`, `SEMANTICD_DATABASE_URL`, etc.) are easier — see [Environment variables](environment-variables.md).
 
 ## Validation
 
-The gateway validates the config on startup. Errors print to stderr and the process exits without serving. Validate without starting the server:
+Validate a config without booting the server:
 
 ```bash
-semantic-firewall validate-config --config /path/to/config.toml
+semanticd --config /path/to/config.toml init --output /tmp/out.toml   # writes a starter template
+semanticd check-policies --path /path/to/policies                       # validates a policies directory
 ```
+
+The serve subcommand validates `config.toml` at startup; errors print to stderr and the process exits without binding.
 
 ## Related
 
-- [Reference → environment variables](environment-variables.md) — full list of env-var overrides.
-- [Concepts → Policies](../concepts/policies.md) — the model behind `[[policies]]`.
+- [Reference → Environment variables](environment-variables.md) — the env-var override list.
+- [HTTP API → Health and status](../api/health-and-status.md) — the three-port architecture this config drives.
 - [Deployment → Docker Compose](../deployment/docker-compose.md) — how the file is mounted in the reference stack.
