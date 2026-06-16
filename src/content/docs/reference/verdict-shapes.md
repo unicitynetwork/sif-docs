@@ -66,25 +66,28 @@ There is no `BatchGuardResponse` struct in `crates/semd-core/src/types/` at the 
 
 Each `results[]` item is expected to be a `GuardResponse` plus the echoed request-side `id`. See [Batch guard](../api/batch-guard.md).
 
-## WebSocket verdict event
+## WebSocket threat event
 
-:::caution[Alpha: shape pending]
-There is no `VerdictEvent` / `WsEvent` Rust struct in the workspace at the time of writing. The current `/ws/events` handler emits `{type, payload, timestamp}`-shaped frames and a `heartbeat` event; whether verdict events are wired through the broadcast channel is not yet confirmed in code. Treat the example below as a placeholder until the streaming envelope stabilises.
-:::
+Published by [`crates/semd-api/src/handlers/guard.rs:513`](https://github.com/unicitynetwork/semanticd/blob/main/crates/semd-api/src/handlers/guard.rs#L513) on every guard call (including `allow`). The envelope is `{type, payload, timestamp}`; the `type` is `"threat"` — historical naming, treat as "guard event" not "block notification". See [HTTP API → Events WebSocket](../api/events-websocket.md) for the full event catalogue.
 
 ```json
 {
-  "type": "verdict",
+  "type": "threat",
   "payload": {
     "request_id": "019ed01f-…",
     "action": "block",
-    "blocked": true,
     "risk_score": 1.0,
-    "policy_applied": "default"
+    "detections": []
   },
   "timestamp": "2026-06-16T11:10:14.574Z"
 }
 ```
+
+The `payload` carries exactly four fields from the underlying `GuardResponse`: `request_id`, `action`, `risk_score`, `detections`. It does **not** include `blocked`, `policy_applied`, `processing_time_ms`, or any other response field — derive `blocked` client-side as `action == "block"`, and fetch the full audit row via `GET /manage/audit/by-request/{request_id}` if you need more.
+
+:::caution[Alpha regression: `payload.detections` is currently empty]
+Mirrors the [single-guard response regression above](#single-guard-response) — the live build is not populating `detections` even on hard blocks, so `serde` drops the field from the payload. `action` and `risk_score` are reliable.
+:::
 
 ## Field-by-field (single response, from `GuardResponse`)
 
