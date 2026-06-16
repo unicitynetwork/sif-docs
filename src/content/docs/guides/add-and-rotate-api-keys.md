@@ -15,35 +15,39 @@ Every call to `/api/v1/guard` carries an API key. This page is the operator-side
    - **Expiry** — optional. Set it for short-lived integrations (e.g. a 7-day demo key) so the credential auto-revokes.
 3. Submit. The full secret is shown **once** on the success screen. Copy it now — it will never be shown again.
 
-A key looks like `semd_<32 random characters>`. It is presented to the gateway in either of two headers:
+A key looks like `semd_live_<32 random characters>`. It is presented to the gateway in either of two headers:
 
 ```
-Authorization: Bearer semd_a3f0...
+Authorization: Bearer semd_live_a3f0...
 ```
 
 or
 
 ```
-X-API-Key: semd_a3f0...
+X-API-Key: semd_live_a3f0...
 ```
 
 The two are equivalent. The Python SDK uses `X-API-Key`.
 
-## Rotate a key
+## Rotate a key (mint-and-revoke pattern)
 
-The rotate operation issues a new secret with the same name, policy, and rate limit, leaving the old secret valid for an overlap window so callers can migrate.
+There is **no in-place `/rotate` endpoint** on the live router (the page title is historical; the operation is a documented pattern, not an API call). To rotate:
 
-1. On the [Settings page](../dashboard/settings-page.md), find the key and click **Rotate**.
-2. The new secret is displayed once — distribute it to the calling application via your secret-management path (env var, secret manager, etc.).
-3. The old secret remains valid for 24 hours. During this window both keys work; the audit log records which secret was actually used per request.
-4. After the rolling deploy of the application completes, revoke the old secret manually — verify the new key is fully in use, then revoke.
+1. **Mint a new key** with the same `name` and `policy_id` as the old one — via the [Settings page](../dashboard/settings-page.md) or `POST /manage/api-keys`. Copy the secret from the success-screen `api_key` field.
+2. **Deploy the new secret** into your application's secret store. Both old and new keys are now valid simultaneously — the audit log records which was used per request.
+3. **Verify the new key is in use** by filtering audit by `key_prefix`. Once the old key has gone quiet for one full request cycle, move on.
+4. **Revoke the old key** via the dashboard or `POST /manage/api-keys/{id}/revoke`. The audit history is retained; only the secret is invalidated.
 
-## Disable vs. revoke
+There is no hard limit on how long both keys can coexist — the overlap window is whatever your deploy cadence requires.
 
-- **Disable** — keep the key on file but reject all requests with `403 key disabled`. Reversible. Use this for incident response, paused integrations, or anything you might want to bring back.
-- **Revoke** — permanently invalidate the key. The row stays in the audit history but the secret is destroyed. Irreversible.
+## Suspend vs. revoke
 
-Rule of thumb: disable first, revoke later, once you're certain the key isn't needed.
+The live API uses **suspend** (reversible) and **revoke** (permanent). There is no `/disable` endpoint.
+
+- **Suspend** (`POST /manage/api-keys/{id}/suspend`) — reject all requests with `403`. Reversible via `POST /manage/api-keys/{id}/reactivate`. Use this for incident response, paused integrations, or anything you might want to bring back.
+- **Revoke** (`POST /manage/api-keys/{id}/revoke`) — permanently invalidate. The row stays in the audit history but the secret is destroyed. Not reversible.
+
+Rule of thumb: suspend first, revoke later, once you're certain the key isn't needed.
 
 ## Rate-limit response
 
