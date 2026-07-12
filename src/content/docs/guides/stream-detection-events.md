@@ -92,7 +92,6 @@ asyncio.run(main())
 - **Backpressure** — The broadcast channel buffer is 256 events. If your consumer falls behind, the server logs `RecvError::Lagged(n)` and you skip ahead — dropped events are not redelivered. Don't do heavy work in the receive loop; hand off to a queue.
 - **Multiple consumers** — Every connected consumer sees every event. There is no fan-out partitioning. If you need per-consumer guarantees, build them in your consumer layer.
 - **Volume** — At sustained high traffic (>500 rps) consider polling `/manage/audit` instead. The stream is designed for low-latency review and dashboards, not for bulk log shipping.
-- **Alpha gotcha** — `payload.detections` mirrors `GuardResponse.detections`, which the live alpha build is not populating even on hard blocks. The block decision (`action`, `risk_score`) is correct; the detection-evidence array is just empty. See [Verdict shapes](../reference/verdict-shapes.md).
 
 ## Related
 

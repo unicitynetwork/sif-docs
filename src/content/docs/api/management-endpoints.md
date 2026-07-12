@@ -6,7 +6,7 @@ description: The /manage/* API for rules, policies, detectors, keys, and audit.
 > **Status: beta.** Used by the dashboard and by operator scripts. Shapes may evolve before 1.0.
 
 :::caution[Admin scope required]
-The `/manage/*` endpoints are the operator/SRE surface. During the hosted alpha, the API keys issued to design partners do **not** grant the `manage` scope — these calls will return `403 forbidden`. Use the [dashboard](../dashboard/settings-page.md) for the equivalent workflows, or wait for post-alpha self-hosting where you control scope.
+The `/manage/*` endpoints are the operator/SRE surface. On the hosted instance, API keys issued to design partners do **not** grant the `manage` scope — these calls will return `403 forbidden`. Use the [dashboard](../dashboard/settings-page.md) for the equivalent workflows, or self-host where you control scope.
 :::
 
 The `/manage/*` family is the admin surface — read and write the gateway's configuration, read the audit log. **The management API runs on a separate port** from the guard API (default `SEMANTICD_PORT + 1` — see [Health and status](health-and-status.md) for the three-port architecture). All non-auth endpoints require a JWT obtained from `/manage/auth/login`.

@@ -5,7 +5,7 @@ sidebar:
   order: 2
 ---
 
-Goal: in 10 minutes, send a prompt through the gateway, see a verdict, and find it in the dashboard. Assumes you have the hosted-alpha credentials we sent you.
+Goal: in 10 minutes, send a prompt through the gateway, see a verdict, and find it in the dashboard. Assumes you have the credentials we sent you.
 
 ## 1 · Mint an API key
 
@@ -62,7 +62,7 @@ curl -X POST https://sif.unicity.network/api/v1/guard \
   }'
 ```
 
-A typical response — during alpha, even this benign prompt scores around 0.60 (the engine is currently tuned conservatively):
+A typical response — the engine is tuned conservatively, so even this benign prompt scores around 0.60:
 
 ```json
 {
@@ -103,37 +103,22 @@ curl -X POST https://sif.unicity.network/api/v1/guard \
 }
 ```
 
-:::caution[Alpha: detections array currently absent on hard blocks]
-The schema defines `detections: [Detection]` but the live alpha build is **not** populating it — even on a `risk_score: 1.0` hard block. The block decision itself is correct; the detector-evidence array is empty (the `serde` skip-if-empty annotation then drops the field from the response). Tracked on the gateway side, not in the docs.
-:::
-
 ## 4 · Find it in the dashboard
 
 Open `https://sif.unicity.network/dashboard/threats`. The two calls from steps 2 + 3 appear at the top of the table with timestamp, action, request id, and source IP.
 
-:::caution[Known alpha display bugs in the threats view]
-Two regressions on the current dashboard build to be aware of:
-
-- **Risk score column reads `0%` on every row.** The API response carries the real value (see the JSON you just curl'd). The threats table is not surfacing it.
-- **Detections column reads `0` and the detail panel's Detections section is empty** for every row, including hard blocks. This mirrors the empty `detections` array on the API side.
-
-Verify action / timestamp / request id from the dashboard against the response JSON above; treat the risk-score and detections columns as not yet reliable.
-:::
-
-Click the row for full detail: the headers, the full message body, and the policy decision will load correctly.
+Click the row for full detail: the headers, the full message body, and the policy decision.
 
 ## 5 · Adjust the policy
 
 Open `https://sif.unicity.network/dashboard/policies`. Find the policy attached to your key and lower the block threshold. Re-send the prompt from step 3 — what was `action: "block"` should now be `action: "flag"`. Raise the threshold and the same prompt may become `action: "allow"`.
-
-Verify the transition from the **API response** (the `action` field on the curl) rather than the dashboard risk column, since that column is currently broken as noted above.
 
 The change takes effect immediately. The gateway hot-reloads policies without a restart.
 
 ## What you just learned
 
 - Every call to `/api/v1/guard` returns an `action` (the verdict), a `blocked` boolean, a `risk_score`, and a `request_id` — see [Verdict shapes](../reference/verdict-shapes.md) for the full schema and [API error codes](../reference/api-error-codes.md) for the error envelope.
-- The dashboard surfaces every recorded call with its action and request id (risk-score and detections-array display are alpha-pending — verify via the API response in the meantime).
+- The dashboard surfaces every recorded call with its action, risk score, and request id.
 - Policy thresholds are tunable at runtime.
 
 ## Where to go next

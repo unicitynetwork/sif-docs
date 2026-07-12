@@ -5,10 +5,6 @@ sidebar:
   order: 4
 ---
 
-:::caution[Self-hosting available post-alpha]
-The installation path described on this page will be fully supported **after the alpha release**. While we're in alpha, please use the hosted instance at [sif.unicity.network/dashboard](https://sif.unicity.network/dashboard) with the credentials we sent you. The steps below are kept here as a preview of what self-hosting will look like.
-:::
-
 This page covers running Semantic Firewall locally for development or evaluation. For production deployment see [Deployment](../deployment/).
 
 ## Prerequisites

@@ -44,13 +44,9 @@ A minimal `allow` response can therefore be as small as:
 }
 ```
 
-:::caution[Alpha regression: detections array currently empty]
-The struct documents `detections: [Detection]`; the live alpha build is **not** populating it even on high-confidence blocks. The block decision is correct (`action` and `risk_score` are right); the detector-evidence array is empty and `serde` drops the field. Tracked on the gateway side. The shape above is the post-alpha contract.
-:::
-
 ## Batch guard response
 
-:::caution[Alpha: shape pending]
+:::caution[Batch response shape not yet stabilised]
 There is no `BatchGuardResponse` struct in `crates/semd-core/src/types/` at the time of writing — the batch endpoint's response wrapper is not yet stabilised against a Rust type. The per-item shape will follow `GuardResponse`. Treat the wrapper below as illustrative only.
 :::
 
@@ -84,10 +80,6 @@ Published by [`crates/semd-api/src/handlers/guard.rs:513`](https://github.com/un
 ```
 
 The `payload` carries exactly four fields from the underlying `GuardResponse`: `request_id`, `action`, `risk_score`, `detections`. It does **not** include `blocked`, `policy_applied`, `processing_time_ms`, or any other response field — derive `blocked` client-side as `action == "block"`, and fetch the full audit row via `GET /manage/audit/by-request/{request_id}` if you need more.
-
-:::caution[Alpha regression: `payload.detections` is currently empty]
-Mirrors the [single-guard response regression above](#single-guard-response) — the live build is not populating `detections` even on hard blocks, so `serde` drops the field from the payload. `action` and `risk_score` are reliable.
-:::
 
 ## Field-by-field (single response, from `GuardResponse`)
 

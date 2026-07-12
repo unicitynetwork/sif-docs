@@ -83,10 +83,6 @@ Schema-present-but-omitted-when-empty/null on a clean low-risk call: `detections
 }
 ```
 
-:::caution[Alpha regression: detections currently empty in live responses]
-On the current build, `detections` is not being populated even on high-confidence blocks (the vec is empty, so `serde` omits the field entirely). The block decision itself is correct — `action`, `blocked`, and `risk_score` are reliable. Schema above is the post-alpha contract.
-:::
-
 ## Response — Modify
 
 ```json

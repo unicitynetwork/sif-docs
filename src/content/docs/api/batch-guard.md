@@ -46,7 +46,7 @@ Content-Type: application/json
 
 ## Response
 
-:::caution[Alpha: batch envelope not yet validated against a Rust struct]
+:::caution[Batch envelope not yet validated against a Rust struct]
 There is no `BatchGuardResponse` struct in `crates/semd-core/src/types/` at the time of writing — the wrapper shape below is documented intent, not wire fact. The per-item shape **is** grounded: each item follows `GuardResponse`.
 :::
 

@@ -3,7 +3,7 @@ title: Events WebSocket (beta)
 description: wss://…/ws/events — live stream of guard verdicts.
 ---
 
-> **Status: beta.** Frame shape is stable for the alpha; the broadcast topology may extend before 1.0.
+> **Status: beta.** Frame shape is stable; the broadcast topology may extend before 1.0.
 
 A WebSocket stream of detection events. Connect, receive an immediate heartbeat, and then receive one `threat` event for every guard call (across all keys / all policies) plus a heartbeat every 30 seconds.
 
@@ -15,7 +15,7 @@ Source of truth: [`crates/semd-manage/src/ws.rs`](https://github.com/unicitynetw
 wss://<manage-host>/ws/events
 ```
 
-The `/ws/events` route lives on the **management API port** (default `SEMANTICD_PORT + 1`, e.g. 8081 — see [Health and status](health-and-status.md)). On the hosted alpha that's `wss://sif.unicity.network/ws/events` because the reverse proxy folds the three internal ports onto port 443.
+The `/ws/events` route lives on the **management API port** (default `SEMANTICD_PORT + 1`, e.g. 8081 — see [Health and status](health-and-status.md)). On the hosted instance that's `wss://sif.unicity.network/ws/events` because the reverse proxy folds the three internal ports onto port 443.
 
 ## Authentication
 
@@ -86,9 +86,7 @@ Published for **every** guard call — including `action: "allow"`. The name is 
 | `request_id` | Correlate with the audit log (`GET /manage/audit/by-request/{request_id}`) |
 | `action` | One of `allow`, `flag`, `modify`, `block` |
 | `risk_score` | Float `[0.0, 1.0]` — copied from the [GuardResponse](../reference/verdict-shapes.md) |
-| `detections` | Array of [`Detection`](../reference/verdict-shapes.md#detection-shape-from-detection) (currently empty on the alpha — see below) |
-
-> **Alpha gotcha**: `payload.detections` mirrors the `GuardResponse.detections` field, which the live alpha build is not populating even on `risk_score: 1.0` hard blocks. The block decision (`action`, `risk_score`) is correct; the detection-evidence array is just empty.
+| `detections` | Array of [`Detection`](../reference/verdict-shapes.md#detection-shape-from-detection) |
 
 ## Filtering
 

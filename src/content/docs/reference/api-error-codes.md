@@ -99,11 +99,11 @@ Other 1xxx codes follow the WebSocket spec. The gateway does **not** issue custo
 - No 404 `*_not_found` codes — the gateway returns 404 but the wire `error.code` is `INVALID_REQUEST`. Read `error.message` to know which resource.
 - No 409 `policy_in_use` / `duplicate_name` codes — current behaviour collapses to `INVALID_REQUEST`.
 
-These distinctions may be added (existing codes won't be renamed). Current alpha behaviour matches the table above.
+These distinctions may be added (existing codes won't be renamed). Current behaviour matches the table above.
 
 ## Stability promise
 
-The seven `code` values are stable for the alpha. New codes may be added; existing codes will not be renamed or repurposed. Message strings are **not** stable — parse on `code`, surface `message` for humans.
+The seven `code` values are stable. New codes may be added; existing codes will not be renamed or repurposed. Message strings are **not** stable — parse on `code`, surface `message` for humans.
 
 ## Related
 

@@ -25,7 +25,7 @@ A row stored against the audit table contains (live shape as returned by `GET /m
 | `policy_id` | The policy used for thresholds |
 | `action` | `allow`, `flag`, `modify`, or `block` |
 | `risk_score` | The combined score, `[0.0, 1.0]` |
-| `detections` | Array of `Detection` objects (`category`, `confidence`, `description`, `rule_id`). Currently empty on alpha — see [Verdict shapes](../reference/verdict-shapes.md) |
+| `detections` | Array of `Detection` objects (`category`, `confidence`, `description`, `rule_id`) — see [Verdict shapes](../reference/verdict-shapes.md) |
 | `message_count` | Number of messages in the request |
 | `total_chars` | Total combined content length |
 | `latency_ms` | Server-side latency (mirrors the response's `processing_time_ms`) |
