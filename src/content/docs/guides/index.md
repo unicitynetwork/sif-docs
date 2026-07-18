@@ -16,3 +16,4 @@ Task-oriented recipes — each guide answers a single "how do I…?" question.
 | [Handle blocked requests in your app](handle-blocked-requests.md) | Graceful UX for verdicts |
 | [Stream detection events](stream-detection-events.md) | Consume the WebSocket feed |
 | [Monitor production traffic](monitor-production-traffic.md) | Dashboards, alerts, SLOs |
+| [Configure SSO](configure-sso.md) | OIDC sign-in, SCIM provisioning, and break-glass |
