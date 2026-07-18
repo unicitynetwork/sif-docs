@@ -112,7 +112,7 @@ SIF supports enterprise SSO, gated by the `sso:configure` capability (`admin` on
 
 - **OIDC sign-in.** Operators authenticate against your identity provider via the Authorization-Code + PKCE flow. On each login SIF maps the IdP's **groups claim** to a SIF role through an admin-configured map (`{ "<idp-group>": "<role>" }`), assigning the highest matched role and defaulting to `viewer`. The IdP is authoritative — the role is re-resolved on every sign-in.
 - **SCIM 2.0 provisioning.** Your IdP can push users and group membership to SIF at `/scim/v2` (bearer-authenticated, separate from operator sessions). Deactivating a user there deactivates the account **and revokes their sessions immediately**.
-- **SSO enforcement + break-glass.** With SSO enforced, local password login is refused (`403`) for everyone except accounts flagged **break-glass** — a deliberate local escape hatch so an IdP outage can't lock you out.
+- **SSO enforcement + break-glass.** With SSO enforced, local password login is refused (a uniform `401`) for everyone except accounts flagged **break-glass** — a deliberate local escape hatch so an IdP outage can't lock you out.
 
 For the operator recipe — encryption key, IdP registration, group-to-role mapping, SCIM, and enforcement — see [How-to → Configure SSO](../guides/configure-sso.md).
 

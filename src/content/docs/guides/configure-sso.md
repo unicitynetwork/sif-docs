@@ -167,7 +167,7 @@ curl -s -X PUT http://<manage-host>:8081/manage/idp \
   -d '{"sso_enforced": true}'
 ```
 
-With `sso_enforced: true`, local password login returns `403` (`local login disabled — use single sign-on`) for every account **except** those flagged `is_break_glass` — those still authenticate with username and password. The block is recorded in the audit log. Clear the flag by sending `{"is_break_glass": false}`.
+With `sso_enforced: true`, local password login is rejected for every account **except** those flagged `is_break_glass` — those still authenticate with username and password. The rejection returns the same opaque `401 Unauthorized` as any other failed login (so it can't be used to tell which accounts are break-glass), and the block is recorded in the audit log. Clear the flag by sending `{"is_break_glass": false}`.
 
 ## Security notes
 
