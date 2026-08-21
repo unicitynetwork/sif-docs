@@ -10,7 +10,8 @@ Task-oriented recipes — each guide answers a single "how do I…?" question.
 | Page | What it covers |
 |---|---|
 | [Integrate with an LLM app](integrate-with-an-llm-app.md) | Wire Semantic Firewall into your app's prompt path |
-| [Write a custom YARA rule](write-a-custom-yara-rule.md) | Add bespoke detection logic |
+| [Write a custom rule](write-a-custom-rule.md) | Add a detection pattern — regex, keywords or composite |
+| [Write a custom YARA rule](write-a-custom-yara-rule.md) | The separate YARA detector, for byte-shaped signatures |
 | [Tune a policy threshold](tune-a-policy-threshold.md) | Adjust block / flag boundaries |
 | [Add and rotate API keys](add-and-rotate-api-keys.md) | Operational key lifecycle |
 | [Handle blocked requests in your app](handle-blocked-requests.md) | Graceful UX for verdicts |

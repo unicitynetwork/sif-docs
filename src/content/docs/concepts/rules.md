@@ -143,5 +143,6 @@ For audit-grade traceability, keep the custom rules directory in version control
 ## Related
 
 - [Detectors](detectors.md) — rules are consumed by rule-based detectors.
-- [How-to → Write a custom YARA rule](../guides/write-a-custom-yara-rule.md) — recipe for authoring a new rule.
+- [How-to → Write a custom rule](../guides/write-a-custom-rule.md) — the recipe for authoring one.
+- [How-to → Write a custom YARA rule](../guides/write-a-custom-yara-rule.md) — the separate YARA detector.
 - [Rules page](../dashboard/rules-page.md) — operational view of the loaded ruleset.
