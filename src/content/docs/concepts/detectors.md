@@ -7,6 +7,24 @@ A **detector** is a software component that examines a message and produces a li
 
 Detectors fall into two main types: a) pattern matching (rule or string matching), and machine learning (e.g. supervised classifier models, anomaly detection).
 
+## A detector is code, not configuration
+
+This is the most common point of confusion, so it is worth stating outright.
+
+**A detector is a compiled Rust component.** It implements one trait — an
+`id`, a `detector_type`, and an async `detect()` — and is registered when the
+gateway starts. There is no API for creating one and no dashboard screen for
+it, because creating a detector means writing a function and compiling it.
+
+**Only one detector reads rules.** `rule_engine` runs the rules in the loaded
+packs. Every other detector carries its own content: `regex_detector` and
+`keyword` are handed a fixed list at startup, `yara_detector` reads `.yar`
+files, and the ML detectors carry a model.
+
+So when you want a new pattern checked, you are almost always writing a
+[rule](rules.md), not a detector. See
+[How the pieces fit](how-the-pieces-fit.md) for the whole relationship.
+
 ## Pattern based detectors
 
 ### What a detector emits
@@ -37,9 +55,16 @@ The in-tree detectors live in [`crates/semd-engine/src/detectors/`](https://gith
 
 #### `regex_detector`
 
-Compiled regular expressions, evaluated on every message body. Cheapest detector — sub-millisecond per message at typical sizes. Category is per-rule configurable; common values: `injection`, `jailbreak`, or a custom string.
+Compiled regular expressions, evaluated on every message body. Cheapest detector — sub-millisecond per message at typical sizes.
 
-Best for known strings: specific exploit phrases, brand mentions, blocked keywords. Configured via per-rule YAML in the rules directory ([Rules](rules.md)).
+Two instances ship: `pii_regex` and `secrets_regex`. **Their patterns are
+compiled into the binary**, not read from the rules directory — the daemon
+constructs each one from a hardcoded list at startup. Changing what they match
+requires a code change and a rebuild.
+
+To add a regex of your own, write a [rule](rules.md) with
+`match: { type: regex }`. That is authored from the dashboard or the API,
+stored in the database, and hot-reloaded.
 
 #### `keyword`
 

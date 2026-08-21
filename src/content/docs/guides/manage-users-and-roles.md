@@ -55,7 +55,9 @@ curl -s -X PATCH http://<manage-host>:8081/manage/users/$USER_ID \
   -d '{"role":"admin"}'
 ```
 
-You cannot demote the **last** `admin` — the gateway refuses it with `403` so you can't lock everyone out.
+You cannot demote the **last** `admin` who can still sign in — the gateway refuses it with `403` so you can't lock everyone out. Deactivated admins don't count, so the protection holds even when other `admin` accounts exist on paper.
+
+`PATCH` changes `role`, `is_active` and `is_break_glass`. It does **not** change `email`: sending an `email` field is rejected with `400`, because for SSO-provisioned accounts the address belongs to your identity provider.
 
 ## Deprovision access (deactivate)
 
@@ -67,11 +69,11 @@ curl -s -X POST http://<manage-host>:8081/manage/users/$USER_ID/deactivate \
   -H "Authorization: Bearer $TOKEN"
 
 # Restore it later:
-curl -s -X POST http://<manage-host>:8081/manage/users/$USER_ID/reactivate \
+curl -s -X POST http://<manage-host>:8081/manage/users/$USER_ID/activate \
   -H "Authorization: Bearer $TOKEN"
 ```
 
-Use **deactivate** for someone on leave, an account under investigation, or anyone you might reinstate. Use **delete** (`DELETE /manage/users/{id}`) only when the account should be gone for good. As with roles, you cannot delete the last `admin`.
+Use **deactivate** for someone on leave, an account under investigation, or anyone you might reinstate. Use **delete** (`DELETE /manage/users/{id}`) only when the account should be gone for good. As with roles, you cannot delete **or deactivate** the last `admin` who can still sign in — both are refused with `403`. Reactivating is never blocked: it can only ever give you more admins, not fewer.
 
 ## Change your own password
 

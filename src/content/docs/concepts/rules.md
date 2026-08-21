@@ -3,64 +3,126 @@ title: Rules
 description: Rule format, built-in vs custom, and the hot-reload mechanism.
 ---
 
-A **rule** is a named pattern that a detector evaluates against the request. The same rule format is used by built-in and operator-authored rules; the only difference is where the file lives.
+A **rule** is a named pattern that the rule engine evaluates against the
+request. The same format is used by built-in and operator-authored rules; the
+difference is only where each one is stored.
 
-## File format — YARA-X
+Rules are read by exactly one detector — `rule_engine`. The other detectors
+carry their own content. See [How the pieces fit](how-the-pieces-fit.md) for
+the full relationship between detectors, rules, packs and policies.
 
-The primary rule format is [YARA-X](https://virustotal.github.io/yara-x/). Each rule is a self-contained block:
+## File format — YAML
 
-```yara
-rule pi_override_instructions
-{
-    meta:
-        description = "Direct instruction-override patterns"
-        category    = "prompt_injection"
-        severity    = "high"
+A pack is a YAML document: a `ruleset:` header, then a list of `rules:`. This
+is from `rules/pii-detection.yaml`, shipped with the gateway:
 
-    strings:
-        $a = "ignore previous instructions"  nocase
-        $b = "disregard the above"           nocase
-        $c = "forget your guidelines"        nocase
+```yaml
+ruleset:
+  id: pii-detection
+  version: "1.0.0"
+  description: "Rules for detecting personally identifiable information"
+  enabled: true
 
-    condition:
-        any of them
-}
+rules:
+  - id: pii-fin-001
+    name: "Credit card number"
+    category: pii
+    severity: critical
+    action: flag
+    applies_to: [prompt, generated_code]
+    description: "Detects credit card numbers"
+    match:
+      type: regex
+      patterns:
+        - "\\b4[0-9]{3}[\\s-]?[0-9]{4}[\\s-]?[0-9]{4}[\\s-]?[0-9]{4}\\b"
+      mode: any
+    score: 0.95
+    tags: [financial]
 ```
 
-Required sections:
-
-| Section | Purpose |
+| Field | Purpose |
 |---|---|
-| `rule <name>` | Unique identifier; used in the dashboard, the audit log, and the verdict response |
-| `meta:` | Tags consumed by the gateway: `description`, `category`, `severity` |
-| `strings:` | Named patterns the rule will look for |
-| `condition:` | When the rule fires (boolean combination of strings) |
+| `id` | Stable identifier; appears in the dashboard, the audit log and the verdict |
+| `category` | Groups rules. A policy can set thresholds per category |
+| `severity` | How serious a match is |
+| `action` | What to do when it matches — `allow`, `flag`, `ask` or `block` |
+| `applies_to` | Which corpora it is matched against |
+| `match` | The matching logic (below) |
+| `score` | Confidence when it matches, 0 to 1 |
 
-Other formats — regex (`.regex` files), PII matchers (`.pii` files) — follow the same convention: a header block with metadata, then the matching logic.
+`match.type` is one of five:
+
+| Type | Carries |
+|---|---|
+| `regex` | `patterns`, `mode`, `case_insensitive` |
+| `keywords` | `keywords`, `mode`, `case_insensitive` |
+| `composite` | nested `conditions` plus a `mode` |
+| `transform_then_match` | `transforms`, then a nested match |
+| `semantic_similarity` | an embedding comparison |
+
+`action` and `applies_to` deliberately have no default. An unclassified rule
+is surfaced at author time and listed as `uncompiled`, rather than having an
+action guessed from its severity or score.
+
+:::note[YARA is a separate thing]
+YARA signatures live in `rules/yara/*.yar` and are run by the `yara_detector`,
+which is its own detector. They are not the rule format described here and are
+not authored through the dashboard.
+:::
 
 ## Built-in vs. custom rules
 
 | | Built-in | Custom |
 |---|---|---|
-| Location | Shipped with the gateway binary | Operator's rules directory |
-| Lifecycle | Updated by upgrading the gateway | Live; hot-reloadable |
-| Editable from dashboard | Metadata only (severity, notes) | Metadata only (body via files) |
-| Version-controlled by | The gateway repository | Your operations repository |
+| Stored in | `rules/*.yaml`, shipped with the gateway | The database |
+| Created by | Upgrading the gateway | `POST /manage/rulesets` and `/manage/rules`, or the dashboard |
+| Marked | `is_builtin: true` | `is_builtin: false` |
+| Editable in place | No — the file owns the body | Yes |
+| Tunable | Yes, via a rule override | Directly |
 | Best for | Coverage of well-known attack patterns | Bespoke patterns specific to your workload |
 
-The two are evaluated equivalently. The only operational difference is where the source-of-truth lives.
+Both are compiled and evaluated identically. What differs is who owns the
+body.
+
+### Overrides, and cloning
+
+A built-in rule's body cannot be edited, because the file is the source of
+truth and a re-sync would discard the change. Instead there is a **rule
+override**, carrying `enabled`, `score` and `severity` — any of which may be
+null, in which case the file's value stands.
+
+Overrides are keyed on the *string* ids `(ruleset_id, rule_id)` rather than
+row ids, precisely so they survive a file re-sync.
+
+To change a built-in rule's matching logic, **clone the pack**. That copies
+its rules into an editable pack, which you then own.
 
 ## Hot reload
 
-The rules directory is watched at runtime. On any change (file added, modified, deleted) the gateway:
+There is no filesystem watcher. Reload is driven two ways, both going through
+one writer so they cannot disagree:
 
-1. Parses the new file.
-2. If parsing succeeds, swaps the rule set atomically — no in-flight requests see a mixed state.
-3. If parsing fails, logs the error and leaves the previous rule set in place.
+1. **On a timer** — every `rules.reload_interval_secs` (30 by default).
+2. **On a Redis message** — when Redis is configured, a change triggers the
+   same path, so it is near-immediate.
 
-There is no detection gap during reload — the previous rule set continues to evaluate until the new one is fully loaded.
+Each pass reads the file packs **and the database**, composes them per
+tenant, compiles, and swaps the whole store atomically. No in-flight request
+sees a mixed state, and there is no detection gap — the previous store keeps
+evaluating until the new one is ready.
 
-The [Rules page](../dashboard/rules-page.md) shows the post-load state, including any rules that failed to parse.
+Two behaviours are deliberate:
+
+- **A pack that fails to compile does not take effect, and the previous store
+  keeps serving.** A bad regex costs you that pack, not the firewall. The
+  failure is recorded against the ruleset and shown on the
+  [Rules page](../dashboard/rules-page.md).
+- **If the database is unreachable, the previous snapshot is kept** rather
+  than falling back to files alone — which would silently discard every
+  customisation until the database returned.
+
+In practice: save a rule, and it is live within a tick. No restart, no
+rebuild.
 
 ## Disabled rules
 

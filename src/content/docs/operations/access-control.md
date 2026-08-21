@@ -103,7 +103,7 @@ curl -s -X POST http://<manage-host>:8081/manage/auth/login \
 
 - **Least privilege.** Give operators `operator`, auditors `viewer`, and reserve `admin` for the small number of people who genuinely administer accounts.
 - **Rotate the seeded admin.** First boot creates `admin` with the password from `SEMANTICD_ADMIN_PASSWORD` (default `admin`, with a startup warning). Change it before the gateway is reachable — see [First-boot setup](first-boot.md).
-- **The last admin is protected.** You cannot delete or demote the final `admin`, so you can never lock yourself out.
+- **The last admin is protected.** You cannot delete, demote **or deactivate** the last `admin` who can still sign in — all three are refused with `403`, so you can never lock yourself out. Deactivated admins don't count towards the tally, so parking every other `admin` leaves the remaining one protected rather than stranding you.
 - **Deprovision by deactivating.** Setting a user inactive both blocks new logins and revokes existing sessions immediately.
 
 ## Single sign-on

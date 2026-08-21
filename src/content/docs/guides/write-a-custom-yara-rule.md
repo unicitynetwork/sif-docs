@@ -3,7 +3,20 @@ title: Write a custom YARA rule
 description: Add a bespoke detection pattern in YARA-X.
 ---
 
-Semantic Firewall uses [YARA-X](https://virustotal.github.io/yara-x/) for its primary pattern-matching detector. Rules live as `.yar` files under the gateway's configured rules directory. New files are picked up automatically — no restart needed.
+:::caution[This is the YARA detector, not the main rule format]
+YARA is **one** of SIF's detectors, not its primary one. Most patterns should
+be written as ordinary rules — YAML with a `match:` block — which you can
+author from the dashboard or the API, and which support regex, keyword lists,
+composites and transforms. See [Rules](../concepts/rules.md).
+
+Reach for YARA when you need what YARA gives you: binary-shaped signatures,
+byte patterns, or an existing corpus of `.yar` files. It cannot be authored
+from the dashboard.
+:::
+
+[YARA-X](https://virustotal.github.io/yara-x/) signatures live as `.yar` files
+under `rules/yara/`, and are run by the `yara_detector`. They are picked up on
+the same reload cycle as everything else — no restart needed.
 
 ## Anatomy of a rule
 
