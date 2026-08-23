@@ -72,6 +72,6 @@ Role-based dashboard auth is on the roadmap. Track its arrival in the [Changelog
 
 ## Related
 
-- [Settings page](../dashboard/settings-page.md) — operator UI for API keys.
+- [Fleet › Keys](../dashboard/fleet-keys.md) — operator UI for API keys.
 - [How-to → Add and rotate API keys](../guides/add-and-rotate-api-keys.md) — the rotation recipe.
 - [Production checklist](../deployment/production-checklist.md) — security items to verify.

@@ -70,7 +70,7 @@ rule custom_internal_url_leak
 }
 ```
 
-After this rule loads, `internal_disclosure` becomes a usable category on the [Policies page](../dashboard/policies-page.md) for per-category thresholds.
+After this rule loads, `internal_disclosure` becomes a usable category on [Guardrails › Policies](../dashboard/guardrails-policies.md) for per-category thresholds.
 
 ## What category does NOT do
 

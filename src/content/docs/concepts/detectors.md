@@ -90,7 +90,7 @@ This detector is the source of `action: modify` verdicts when redaction is enabl
 
 ONNX-backed classifier emitting `injection` and `jailbreak` categories. Loads a fine-tuned model per category and emits a confidence score in `[0.0, 1.0]` per message. **Opt-in** — only loaded when the gateway is built with the `ml` feature flag. Latency: 5–15 ms per message; significantly more on Intel CPUs.
 
-Not configured via rule files. The model artefacts are configured at startup via `[engine.models.*]` in `config.toml` ([Reference → config.toml](../reference/config-toml.md)). Surfaced in the [Detectors page](../dashboard/detectors-page.md).
+Not configured via rule files. The model artefacts are configured at startup via `[engine.models.*]` in `config.toml` ([Reference → config.toml](../reference/config-toml.md)). Surfaced in [Guardrails › Detectors](../dashboard/guardrails-detectors.md).
 
 #### Custom detectors
 
@@ -119,4 +119,4 @@ Note:
 
 - [The guard pipeline](the-guard-pipeline.md) — where detectors sit in the request flow.
 - [Rules](rules.md) — how rule-based detectors are configured.
-- [Detectors page](../dashboard/detectors-page.md) — the operational view.
+- [Guardrails › Detectors](../dashboard/guardrails-detectors.md) — the operational view.

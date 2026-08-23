@@ -97,4 +97,4 @@ asyncio.run(main())
 
 - [HTTP API → Events WebSocket](../api/events-websocket.md) — reference for the URL, envelope, and close codes.
 - [How-to → Monitor production traffic](monitor-production-traffic.md) — picking between the stream, audit-poll, and metrics for the right job.
-- [Dashboard → Overview page](../dashboard/overview-page.md) — the dashboard's live feed is a UI on top of this same stream.
+- [Activity › Threats](../dashboard/activity-threats.md) — the console's detection feed is a UI on top of this same stream.

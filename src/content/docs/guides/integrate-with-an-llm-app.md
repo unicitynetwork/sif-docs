@@ -104,7 +104,7 @@ This runs the response-side rule set in addition to the request-side one. It dou
 
 Allow ~10–20 ms p99 for the guard call against a local gateway with regex + YARA + PII detectors. The ML detectors add 5–15 ms each when enabled. The gateway runs detectors concurrently; the total is bounded by the slowest enabled detector plus a small overhead.
 
-If your end-to-end p99 budget is tight, enable short-circuit on the policy ([Policies page](../dashboard/policies-page.md)) so the gateway stops evaluating once the first high-confidence detection fires.
+If your end-to-end p99 budget is tight, enable short-circuit on the policy ([Guardrails › Policies](../dashboard/guardrails-policies.md)) so the gateway stops evaluating once the first high-confidence detection fires.
 
 ## Related
 

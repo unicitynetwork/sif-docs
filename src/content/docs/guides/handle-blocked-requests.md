@@ -51,7 +51,7 @@ if result.is_flagged:
 response = call_llm(user_text)
 ```
 
-In a user-facing app this might look like: the user gets their answer, your audit log records that the prompt was suspicious, and someone reviews the flagged traffic out-of-band on the [Threats page](../dashboard/threats-page.md).
+In a user-facing app this might look like: the user gets their answer, your audit log records that the prompt was suspicious, and someone reviews the flagged traffic out-of-band on [Activity › Threats](../dashboard/activity-threats.md).
 
 ## Pattern 3 — Use the modified content
 

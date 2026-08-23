@@ -185,7 +185,7 @@ store atomically.
 **If your rule does not compile, the pack does not take effect and the
 previous one keeps serving.** A bad regex costs you that pack, not the
 firewall. The failure is recorded against the ruleset and shown on the
-[Rules page](../dashboard/rules-page.md) — worth checking after your first
+[Guardrails › Rules](../dashboard/guardrails-rules.md) — worth checking after your first
 save.
 
 ## Tuning a built-in rule instead

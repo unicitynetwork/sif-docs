@@ -6,7 +6,7 @@ description: The /manage/* API for rules, policies, detectors, keys, and audit.
 > **Status: beta.** Used by the dashboard and by operator scripts. Shapes may evolve before 1.0.
 
 :::caution[Admin scope required]
-The `/manage/*` endpoints are the operator/SRE surface. On the hosted instance, API keys issued to design partners do **not** grant the `manage` scope — these calls will return `403 forbidden`. Use the [dashboard](../dashboard/settings-page.md) for the equivalent workflows, or self-host where you control scope.
+The `/manage/*` endpoints are the operator/SRE surface. On the hosted instance, API keys issued to design partners do **not** grant the `manage` scope — these calls will return `403 forbidden`. Use [Fleet › Keys](../dashboard/fleet-keys.md) for the equivalent workflows, or self-host where you control scope.
 :::
 
 The `/manage/*` family is the admin surface — read and write the gateway's configuration, read the audit log. **The management API runs on a separate port** from the guard API (default `SEMANTICD_PORT + 1` — see [Health and status](health-and-status.md) for the three-port architecture). All non-auth endpoints require a JWT obtained from `/manage/auth/login`.
@@ -185,4 +185,4 @@ Audit row fields: `id`, `request_id`, `event_type`, `action`, `message_count`, `
 ## Related
 
 - [Concepts → Rules](../concepts/rules.md), [Policies](../concepts/policies.md), [API keys](../concepts/api-keys-and-tenancy.md), [Threats and verdicts](../concepts/threats-and-verdicts.md) — the data model behind these endpoints.
-- [Settings page](../dashboard/settings-page.md), [Policies page](../dashboard/policies-page.md), [Rules page](../dashboard/rules-page.md) — the dashboard UI on top of these endpoints.
+- [Fleet › Keys](../dashboard/fleet-keys.md), [Guardrails › Policies](../dashboard/guardrails-policies.md), [Guardrails › Rules](../dashboard/guardrails-rules.md) — the dashboard UI on top of these endpoints.

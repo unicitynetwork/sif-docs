@@ -116,7 +116,7 @@ Two behaviours are deliberate:
 - **A pack that fails to compile does not take effect, and the previous store
   keeps serving.** A bad regex costs you that pack, not the firewall. The
   failure is recorded against the ruleset and shown on the
-  [Rules page](../dashboard/rules-page.md).
+  [Guardrails › Rules](../dashboard/guardrails-rules.md).
 - **If the database is unreachable, the previous snapshot is kept** rather
   than falling back to files alone — which would silently discard every
   customisation until the database returned.
@@ -126,7 +126,7 @@ rebuild.
 
 ## Disabled rules
 
-A rule can be disabled without deleting the file. Toggling the **Enabled** flag on the [Rules page](../dashboard/rules-page.md) calls `PATCH /manage/rules/{id}` with `{"enabled": false}`. Disabled rules are still loaded — the file is parsed, the rule is held in memory — but they're skipped during evaluation.
+A rule can be disabled without deleting the file. Toggling the **Enabled** flag on [Guardrails › Rules](../dashboard/guardrails-rules.md) calls `PATCH /manage/rules/{id}` with `{"enabled": false}`. Disabled rules are still loaded — the file is parsed, the rule is held in memory — but they're skipped during evaluation.
 
 Use disable instead of delete when:
 
@@ -145,4 +145,4 @@ For audit-grade traceability, keep the custom rules directory in version control
 - [Detectors](detectors.md) — rules are consumed by rule-based detectors.
 - [How-to → Write a custom rule](../guides/write-a-custom-rule.md) — the recipe for authoring one.
 - [How-to → Write a custom YARA rule](../guides/write-a-custom-yara-rule.md) — the separate YARA detector.
-- [Rules page](../dashboard/rules-page.md) — operational view of the loaded ruleset.
+- [Guardrails › Rules](../dashboard/guardrails-rules.md) — operational view of the loaded ruleset.

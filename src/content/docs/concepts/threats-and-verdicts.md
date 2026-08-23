@@ -9,7 +9,7 @@ Every guard call produces an audit row. The row captures the request, the verdic
 
 The term **threat** in the dashboard and the audit log refers to any non-`allow` verdict. `block`, `flag`, and `modify` are all threats; `allow` is not.
 
-This is purely a UX convention — at the API level, an `allow` verdict is recorded the same way as a `block`. The [Threats page](../dashboard/threats-page.md) filters allows out for clarity.
+This is purely a UX convention — at the API level, an `allow` verdict is recorded the same way as a `block`. [Activity › Threats](../dashboard/activity-threats.md) filters allows out for clarity.
 
 ## Audit row contents
 
@@ -76,6 +76,6 @@ For longer retention, mirror to your data warehouse via periodic `GET /manage/au
 ## Related
 
 - [The guard pipeline](the-guard-pipeline.md) — how the row gets written.
-- [Threats page](../dashboard/threats-page.md) — the dashboard view.
+- [Activity › Threats](../dashboard/activity-threats.md) — the dashboard view.
 - [How-to → Monitor production traffic](../guides/monitor-production-traffic.md) — using the data in alerting and dashboards.
 - [HTTP API → Management endpoints](../api/management-endpoints.md) — the query surface.

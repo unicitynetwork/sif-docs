@@ -21,7 +21,7 @@ The Python SDK uses `X-API-Key`. Most curl examples use `Authorization: Bearer`.
 
 ## Key shape
 
-Keys are `semd_` followed by 32 random alphanumeric characters. They are case-sensitive. The full secret is shown only at creation — see the [Settings page](../dashboard/settings-page.md) for the lifecycle.
+Keys are `semd_` followed by 32 random alphanumeric characters. They are case-sensitive. The full secret is shown only at creation — see [Fleet › Keys](../dashboard/fleet-keys.md) for the lifecycle.
 
 ## Error responses
 
@@ -69,5 +69,5 @@ Query-parameter auth has the usual downside — keys may end up in proxy logs. P
 ## Related
 
 - [Concepts → API keys and tenancy](../concepts/api-keys-and-tenancy.md) — the model behind keys.
-- [Settings page](../dashboard/settings-page.md) — operator UI for managing keys.
+- [Fleet › Keys](../dashboard/fleet-keys.md) — operator UI for managing keys.
 - [Reference → API error codes](../reference/api-error-codes.md) — exhaustive error reference.

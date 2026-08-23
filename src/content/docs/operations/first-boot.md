@@ -128,7 +128,7 @@ The new password takes effect on the next login; existing JWTs continue to work 
 
 ## What this does not cover
 
-- **Policy authoring.** First boot installs a `default` policy with permissive thresholds. Tune per-category thresholds via the [Policies page](../dashboard/policies-page.md) or `PATCH /manage/policies/{id}` before bringing real traffic onto the gateway.
+- **Policy authoring.** First boot installs a `default` policy with permissive thresholds. Tune per-category thresholds via [Guardrails › Policies](../dashboard/guardrails-policies.md) or `PATCH /manage/policies/{id}` before bringing real traffic onto the gateway.
 - **Multi-operator setup.** The seeded admin is the only user. Add more via `POST /manage/users` from an admin JWT. See [Management endpoints → Users](../api/management-endpoints.md#users).
 - **Production hardening.** TLS, secrets management, backups, multi-replica deploys — see [Deployment](../deployment/) and [Operations → Auth and secrets](auth-and-secrets.md).
 

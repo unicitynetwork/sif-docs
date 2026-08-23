@@ -7,10 +7,10 @@ Every call to `/api/v1/guard` carries an API key. This page is the operator-side
 
 ## Create a key
 
-1. Open the [Settings page](../dashboard/settings-page.md).
+1. Open [Fleet › Keys](../dashboard/fleet-keys.md).
 2. Click **Create key** and fill in:
    - **Name** — a stable label. It appears in audit rows and rate-limit alerts. Use something like `support-bot-prod`, `eng-experiments`, `incident-bot`.
-   - **Policy** — which [policy](../dashboard/policies-page.md) governs the verdict thresholds. Use `default` unless you have a reason not to.
+   - **Policy** — which [Guardrails › Policies](../dashboard/guardrails-policies.md) governs the verdict thresholds. Use `default` unless you have a reason not to.
    - **Rate limit (rpm)** — requests per minute. `0` means unlimited. Start with a low value (60 rpm) for a new key; raise it once the calling app's traffic shape is known.
    - **Expiry** — optional. Set it for short-lived integrations (e.g. a 7-day demo key) so the credential auto-revokes.
 3. Submit. The full secret is shown **once** on the success screen. Copy it now — it will never be shown again.
@@ -33,7 +33,7 @@ The two are equivalent. The Python SDK uses `X-API-Key`.
 
 There is **no in-place `/rotate` endpoint** on the live router (the page title is historical; the operation is a documented pattern, not an API call). To rotate:
 
-1. **Mint a new key** with the same `name` and `policy_id` as the old one — via the [Settings page](../dashboard/settings-page.md) or `POST /manage/api-keys`. Copy the secret from the success-screen `api_key` field.
+1. **Mint a new key** with the same `name` and `policy_id` as the old one — via [Fleet › Keys](../dashboard/fleet-keys.md) or `POST /manage/api-keys`. Copy the secret from the success-screen `api_key` field.
 2. **Deploy the new secret** into your application's secret store. Both old and new keys are now valid simultaneously — the audit log records which was used per request.
 3. **Verify the new key is in use** by filtering audit by `key_prefix`. Once the old key has gone quiet for one full request cycle, move on.
 4. **Revoke the old key** via the dashboard or `POST /manage/api-keys/{id}/revoke`. The audit history is retained; only the secret is invalidated.
@@ -65,7 +65,7 @@ The `Retry-After` header is in seconds. SDK clients honour it automatically; bar
 
 ## Audit the key usage
 
-Every guard call is recorded against the key that authenticated it. Query the audit endpoints (or the [Threats page](../dashboard/threats-page.md)) by API key to see what a given key has been used for.
+Every guard call is recorded against the key that authenticated it. Query the audit endpoints (or [Activity › Audit](../dashboard/activity-audit.md), which filters by API key) to see what a given key has been used for.
 
 Useful queries:
 
@@ -77,6 +77,6 @@ Useful queries:
 
 ## Related
 
-- [Settings page](../dashboard/settings-page.md) — the editing surface.
+- [Fleet › Keys](../dashboard/fleet-keys.md) — the editing surface.
 - [HTTP API → Authentication](../api/authentication.md) — header format and error codes.
 - [Operations → Auth and secrets](../operations/auth-and-secrets.md) — where the encrypted key store lives in production.

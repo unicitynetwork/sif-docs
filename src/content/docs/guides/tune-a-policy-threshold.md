@@ -7,7 +7,7 @@ The right thresholds depend on the traffic, the risk tolerance, and the cost of 
 
 ## Before tuning — confirm the failure mode
 
-Open the [Threats page](../dashboard/threats-page.md) and filter by the action you're concerned about.
+Open [Activity › Threats](../dashboard/activity-threats.md) and filter by the action you're concerned about.
 
 | Symptom | What you're seeing | What to do |
 |---|---|---|
@@ -19,7 +19,7 @@ Click into a representative row. The detail panel shows which detector fired, th
 
 ## Make the change
 
-1. Open the [Policies page](../dashboard/policies-page.md).
+1. Open [Guardrails › Policies](../dashboard/guardrails-policies.md).
 2. Click the policy attached to the API key that produced the false positive (visible in the Threats detail panel as `policy_applied`).
 3. In the threshold map, find the entry for the offending category (e.g. `prompt_injection: { flag: 0.5, block: 0.8 }`).
 4. Adjust the value by 0.05–0.10 in the direction that matches the symptom. Save.
@@ -39,7 +39,7 @@ curl -X POST https://sif.unicity.network/api/v1/guard \
 
 The verdict should reflect the new threshold. If not, double-check:
 
-- You edited the policy bound to the API key you tested with — [Settings page](../dashboard/settings-page.md) shows the binding.
+- You edited the policy bound to the API key you tested with — [Fleet › Keys](../dashboard/fleet-keys.md) shows the binding.
 - The detector that fired is named in the threshold key (`category` in the verdict) — if it isn't, you're tuning the wrong threshold.
 
 ## Tune iteratively, not aggressively
@@ -47,7 +47,7 @@ The verdict should reflect the new threshold. If not, double-check:
 Move thresholds in increments of 0.05–0.10. Larger jumps tend to overshoot — what looked like five false positives becomes five new false negatives. A common workflow:
 
 1. Save a small adjustment.
-2. Watch the [Threats page](../dashboard/threats-page.md) for an hour of real traffic (or replay a known-good corpus through the gateway).
+2. Watch [Activity › Threats](../dashboard/activity-threats.md) for an hour of real traffic (or replay a known-good corpus through the gateway).
 3. Adjust again only after you have evidence the previous change had the intended effect.
 
 ## Use a separate policy for experiments
@@ -55,7 +55,7 @@ Move thresholds in increments of 0.05–0.10. Larger jumps tend to overshoot —
 For high-volume production keys, do *not* tune thresholds directly. Instead:
 
 1. Clone the policy: copy the current settings into a new policy with a name like `default-experimental`.
-2. Mint a low-traffic API key bound to the experimental policy via [Settings → Create key](../dashboard/settings-page.md).
+2. Mint a low-traffic API key bound to the experimental policy via [Fleet › Keys](../dashboard/fleet-keys.md).
 3. Tune against that key.
 4. Promote by editing the production policy to match, once the experimental one is stable.
 
@@ -75,6 +75,6 @@ When multiple categories fire, the policy's aggregation mode decides the final r
 
 ## Related
 
-- [Policies page](../dashboard/policies-page.md) — the editing surface.
+- [Guardrails › Policies](../dashboard/guardrails-policies.md) — the editing surface.
 - [Concepts → Policies](../concepts/policies.md) — aggregation modes, fail mode, short-circuit.
 - [How-to → Handle blocked requests](handle-blocked-requests.md) — UX for the verdicts that survive your tuning.

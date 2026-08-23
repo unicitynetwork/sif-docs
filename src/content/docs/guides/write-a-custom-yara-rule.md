@@ -97,8 +97,8 @@ Either the action verbs or the credential nouns alone are common in benign devel
 
 1. Save the file under your gateway's rules directory, e.g.
    `<gateway-root>/rules/yara/my-rules.yar`.
-2. Watch the gateway's logs (or the [Rules page](../dashboard/rules-page.md)) — within a few seconds the new rule appears in the table.
-3. If the file is malformed the gateway logs a parse error and leaves the previous rule set in place. The Rules page surfaces this as an `error` state.
+2. Watch the gateway's logs (or [Guardrails › Rules](../dashboard/guardrails-rules.md)) — within a few seconds the new rule appears in the table.
+3. If the file is malformed the gateway logs a parse error and leaves the previous rule set in place. The Guardrails › Rules surfaces this as an `error` state.
 
 ## Test the rule
 
@@ -117,7 +117,7 @@ If the rule fires you should see the rule's `id` in `detections[].rule_id` and i
 
 ## Promote, tune, retire
 
-Once a rule has been firing on real traffic long enough to validate its precision (visible on the [Threats page](../dashboard/threats-page.md)):
+Once a rule has been firing on real traffic long enough to validate its precision (visible on [Activity › Threats](../dashboard/activity-threats.md)):
 
 - Adjust `severity` if it should contribute more or less to the verdict.
 - Move it from your custom rules directory into version control with the rest of the rule set.
@@ -126,5 +126,5 @@ Once a rule has been firing on real traffic long enough to validate its precisio
 ## Related
 
 - [Concepts → Rules](../concepts/rules.md) — how rules feed into detectors and policies.
-- [Rules page](../dashboard/rules-page.md) — operational view of the loaded rules.
+- [Guardrails › Rules](../dashboard/guardrails-rules.md) — operational view of the loaded rules.
 - [YARA-X reference](https://virustotal.github.io/yara-x/) — full syntax for the strings and condition blocks.

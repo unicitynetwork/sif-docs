@@ -63,7 +63,7 @@ In `--dev-mode` no auth is required, so the feed should always work — if it do
 
 ## Rule file fails to load
 
-The Rules page shows a rule as `error`, or `/api/status` shows a stalled `ruleset_version`. Inspect the gateway logs:
+The Guardrails › Rules shows a rule as `error`, or `/api/status` shows a stalled `ruleset_version`. Inspect the gateway logs:
 
 ```bash
 docker compose logs gateway | grep -i 'rule_error\|parse'
@@ -117,7 +117,7 @@ If the volume is legitimate, raise the key's `rate_limit_rpm`. If not, disable t
 Common causes:
 
 - A new rule started firing (compare `ruleset_version` in `/api/status` against an hour ago).
-- A policy threshold change (check the Policies page edit history).
+- A policy threshold change (check Guardrails › Policies edit history).
 - A real attack.
 
 Roll back the most recent rule or policy change first. The block rate normalising is confirmation that's where the issue was.

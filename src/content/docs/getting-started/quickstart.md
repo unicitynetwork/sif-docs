@@ -13,7 +13,7 @@ You need a key starting with `semd_` to call `/api/v1/guard`. Two equivalent way
 
 ### Via the dashboard
 
-Visit `https://sif.unicity.network/dashboard` and sign in with the credentials we sent you. You'll land on the [Overview page](../dashboard/overview-page.md). Open the [Settings page](../dashboard/settings-page.md), click **Create key**, give it a name, and submit. The full secret is shown **once** on the success screen — copy it now.
+Visit `https://sif.unicity.network/dashboard` and sign in with the credentials we sent you. You'll land on [Home](../dashboard/home.md). Open [Fleet › Keys](../dashboard/fleet-keys.md), click **Create key**, give it a name, and submit. The full secret is shown **once** on the success screen — copy it now.
 
 ### Via curl
 

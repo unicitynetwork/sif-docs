@@ -75,6 +75,23 @@ export default defineConfig({
   // `base` must match the repo name so internal links and assets resolve.
   site: "https://unicitynetwork.github.io",
   base: SITE_BASE,
+  // The console was reorganised into six sections (Home, Fleet, Guardrails,
+  // Activity, Access, Reports), so the dashboard tour is now one page per
+  // screen rather than one per old top-level route. The gateway itself keeps
+  // redirects for the routes it used before; these keep the docs' old URLs
+  // working for anything that bookmarked or linked to them.
+  // Astro prepends `base` to a redirect's SOURCE but not to its TARGET, so the
+  // destination has to carry SITE_BASE itself or it lands outside the project
+  // site entirely.
+  redirects: {
+    "/dashboard/overview-page": `${SITE_BASE}/dashboard/home/`,
+    "/dashboard/threats-page": `${SITE_BASE}/dashboard/activity-threats/`,
+    "/dashboard/rules-page": `${SITE_BASE}/dashboard/guardrails-rules/`,
+    "/dashboard/policies-page": `${SITE_BASE}/dashboard/guardrails-policies/`,
+    "/dashboard/detectors-page": `${SITE_BASE}/dashboard/guardrails-detectors/`,
+    // Settings split three ways; keys were the bulk of what it covered.
+    "/dashboard/settings-page": `${SITE_BASE}/dashboard/fleet-keys/`,
+  },
   markdown: {
     remarkPlugins: [remarkRelativeMarkdownLinks],
   },

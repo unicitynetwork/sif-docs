@@ -30,7 +30,7 @@ Both are equivalent. The Python SDK uses `X-API-Key`. Most curl examples use `Au
 
 Every key is bound to exactly one policy when it is created. The binding is the *only* way a policy affects a request: there is no way to override the policy per-call.
 
-To change a key's policy, edit the key on the [Settings page](../dashboard/settings-page.md) or via `PATCH /manage/api-keys/{id}`.
+To change a key's policy, edit the key on [Fleet › Keys](../dashboard/fleet-keys.md) or via `PATCH /manage/api-keys/{id}`.
 
 Multiple keys can share a policy. This is the recommended pattern for multi-application deployments:
 
@@ -57,7 +57,7 @@ A limit of `0` means unlimited. Use unlimited only for keys whose calling applic
 
 Every audit row records the key prefix (`semd_a3f0…`, never the full secret) and the request metadata. This drives:
 
-- The "Last used" column on the [Settings page](../dashboard/settings-page.md).
+- The "Last used" column on [Fleet › Keys](../dashboard/fleet-keys.md).
 - Per-key filtering on `GET /manage/audit?key_prefix=semd_live_a3f0`.
 - Anomaly detection (e.g. a key suddenly producing 100× its baseline volume).
 
@@ -84,5 +84,5 @@ For stronger isolation, run separate gateway instances per tenant with separate 
 ## Related
 
 - [HTTP API → Authentication](../api/authentication.md) — the wire-level reference.
-- [Settings page](../dashboard/settings-page.md) — the operator UI.
+- [Fleet › Keys](../dashboard/fleet-keys.md) — the operator UI.
 - [How-to → Add and rotate API keys](../guides/add-and-rotate-api-keys.md) — the operational lifecycle.

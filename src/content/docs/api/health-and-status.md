@@ -83,7 +83,7 @@ Build information. Stable identifier for a running gateway.
 
 ## `GET /api/status`
 
-Detailed runtime status with metrics. Polled by the dashboard's Overview page every 5 seconds.
+Detailed runtime status with metrics. Polled by the console.
 
 ```json
 {
@@ -133,5 +133,5 @@ The counters are **in-memory** and reset to zero on process restart. For histori
 ## Related
 
 - [Concepts → The guard pipeline](../concepts/the-guard-pipeline.md) — what `total_requests` counts.
-- [Dashboard → Overview page](../dashboard/overview-page.md) — UI on top of `/api/status`.
+- [Home](../dashboard/home.md) — UI on top of `/api/status`.
 - [Deployment → Observability](../deployment/observability.md) — scraping these endpoints in production.

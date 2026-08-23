@@ -86,7 +86,7 @@ Common edits:
 | Treat detector errors more conservatively | Change `fail_mode` from `allow` to `flag` or `block` |
 | Add a new detector to the policy | Add an entry under `[policies.detectors]` |
 
-The dashboard [Policies page](../dashboard/policies-page.md) is the recommended edit surface. The same data is reachable via `PUT /manage/policies/{name}` for scripted changes.
+The dashboard [Guardrails › Policies](../dashboard/guardrails-policies.md) is the recommended edit surface. The same data is reachable via `PUT /manage/policies/{name}` for scripted changes.
 
 ## Related
 
