@@ -2,7 +2,7 @@
 title: Activity › Threats
 description: The detections the guard acted on, and the payload behind each one.
 sidebar:
-  order: 11
+  order: 12
 ---
 
 Activity › Threats (`/activity/threats`) is the detection feed: what the guard

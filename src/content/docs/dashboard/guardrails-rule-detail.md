@@ -9,7 +9,7 @@ Opening a rule from [Guardrails › Rules](guardrails-rules.md) gives it a URL o
 own:
 
 ```
-/guardrails/rules/{pack}/{rule}
+/guardrails/rules/{ruleset}/{rule}
 ```
 
 Bookmarkable and linkable, which is what you want when a rule comes up in an
@@ -32,9 +32,9 @@ explaining why, rather than guessing.
 ## Overriding
 
 **Override severity** and **Override score** change what the engine uses without
-editing the pack. Save, and the new values are effective immediately.
+editing the ruleset. Save, and the new values are effective immediately.
 
-**Reset override** removes it, returning the rule to what the pack ships.
+**Reset override** removes it, returning the rule to what the ruleset ships.
 
 ## Testing it
 

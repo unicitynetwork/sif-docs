@@ -2,7 +2,7 @@
 title: Access › Tenants
 description: Platform-operator administration of the tenants on this deployment.
 sidebar:
-  order: 15
+  order: 16
 ---
 
 Access › Tenants (`/access/tenants`) is the platform operator's screen: the

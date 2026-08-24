@@ -2,7 +2,7 @@
 title: Activity › Audit
 description: The full event record — filterable, linkable, and exportable as evidence.
 sidebar:
-  order: 12
+  order: 13
 ---
 
 Activity › Audit (`/activity/audit`) is the complete record: every decision the

@@ -17,7 +17,7 @@ gateway starts. There is no API for creating one and no dashboard screen for
 it, because creating a detector means writing a function and compiling it.
 
 **Only one detector reads rules.** `rule_engine` runs the rules in the loaded
-packs. Every other detector carries its own content: `regex_detector` and
+rulesets. Every other detector carries its own content: `regex_detector` and
 `keyword` are handed a fixed list at startup, `yara_detector` reads `.yar`
 files, and the ML detectors carry a model.
 

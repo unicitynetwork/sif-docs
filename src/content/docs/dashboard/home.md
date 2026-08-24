@@ -20,7 +20,7 @@ these is true:
 | Label | Raised when | Verb |
 |---|---|---|
 | **Expiring** | An API key expires within seven days, or has already expired | Rotate → |
-| **Blocking** | A ruleset failed to compile, so its rules are not running | Fix the pack → |
+| **Blocking** | The latest rule configuration failed to compile; the previous one is still serving | See the error → |
 | **Risk** | Only one active admin remains — losing it locks the deployment out | Promote another → |
 | **Drifted** | A file-backed policy no longer matches the YAML it came from | Review → |
 
@@ -53,6 +53,6 @@ day-over-day comparison is not available.
 ## Where to go next
 
 - Something is wrong with a key → [Fleet › Keys](fleet-keys.md)
-- Something is wrong with a rule pack → [Guardrails › Rules](guardrails-rules.md)
+- Something is wrong with a ruleset → [Guardrails › Rulesets](guardrails-rulesets.md)
 - A policy has drifted → [Guardrails › Policies](guardrails-policies.md)
 - Only one admin left → [Access › Users](access-users.md)

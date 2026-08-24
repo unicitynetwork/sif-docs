@@ -1,13 +1,13 @@
 ---
 title: How the pieces fit
-description: Detectors, rules, packs and policies — what each one actually is, and the two paths a rule can take to a decision.
+description: Detectors, rules, rulesets and policies — what each one actually is, and the two paths a rule can take to a decision.
 ---
 
 Four words do most of the work in SIF, and they are easy to confuse because
 three of them sound like the same kind of thing. They are not.
 
 > A **policy** chooses which **detectors** run. One of those detectors — the
-> rule engine — runs the **rules** in the loaded **packs**. Everything else
+> rule engine — runs the **rules** in the loaded **rulesets**. Everything else
 > follows from that sentence.
 
 This page is the long version, written against the source rather than from
@@ -16,7 +16,7 @@ memory. Every claim names the file it came from.
 ## The one-paragraph version
 
 A **detector** is a compiled program. A **rule** is data that one particular
-detector reads. A **pack** (ruleset) is a file or database row holding rules.
+detector reads. A **ruleset** is a file or database row holding rules.
 A **policy** is configuration that decides which detectors run, in what
 order, and what their output is allowed to do.
 
@@ -132,21 +132,21 @@ that is a UI problem, not a backend one.
 deliberately no default, because a rule fired against the wrong corpus fails
 closed at the edge.
 
-## Pack (ruleset) — where rules live
+## Ruleset — where rules live
 
-A pack is a named, versioned group of rules. Packs come from two places and
+A ruleset is a named, versioned group of rules. Rulesets come from two places and
 are merged on every reload:
 
 - **Files** — `rules/*.yaml`, shipped with the gateway. `is_builtin: true`.
 - **Database** — created through `POST /manage/rulesets` and
   `/manage/rules`. This is where anything you author lands.
 
-A built-in pack cannot be edited in place, because the file owns it. Instead
+A built-in ruleset cannot be edited in place, because the file owns it. Instead
 there is `RuleOverride`, keyed on the *string* ids `(ruleset_id, rule_id)` so
 it survives a file re-sync, and carrying nullable `enabled`, `score` and
 `severity`. Anything null falls through to what the file says.
 
-To change a built-in rule's body you clone the pack — which copies its rules
+To change a built-in rule's body you clone the ruleset — which copies its rules
 into an editable one.
 
 ## Policy — the configuration
@@ -168,7 +168,7 @@ A policy owns no rules and no detectors. It holds
 
 Two consequences worth stating plainly:
 
-**A policy never names a pack.** There is no ruleset field on `Policy`. Packs
+**A policy never names a ruleset.** There is no ruleset field on `Policy`. Rulesets
 load globally; a policy tunes the *rule engine as a whole*. You cannot say
 "policy X uses rules A and B" — only "policy X runs the rule engine at these
 thresholds".
@@ -218,16 +218,18 @@ through one writer so they cannot disagree:
 
 Each pass calls `rules_compose::compose_and_store`, which:
 
-- reads the file packs **and** the database,
+- reads the file rulesets **and** the database,
 - composes them per tenant,
 - compiles,
 - and swaps the whole store atomically (`replace_all`).
 
 Two safety behaviours are deliberate and worth knowing:
 
-- **A pack that fails to compile does not take effect, and the previous store
-  keeps serving.** That is what `Ruleset.compile_error` and `in_effect` are
-  for — a bad regex costs you that pack, not the firewall.
+- **A ruleset that fails to compile fails the tenant's whole composition:
+  nothing saved since the last good composition takes effect, and the previous
+  store keeps serving.** That is what the compile status on the ruleset rows
+  is for — and it is the tenant's status, stamped on every row at once,
+  because the composition is what failed, not one ruleset.
 - **If the database is unreachable, the previous snapshot is kept** rather
   than reverting to files alone. The code comments note this replaced an
   earlier behaviour that silently discarded database customisation on every
@@ -242,7 +244,7 @@ These are things the source shows today, recorded so nobody rediscovers them.
 
 ### PII is shipped twice, by two different mechanisms
 
-`rules/pii-detection.yaml` is a built-in pack of PII rules. `pii_regex` is a
+`rules/pii-detection.yaml` is a built-in ruleset of PII rules. `pii_regex` is a
 hardcoded Rust pattern set covering email, US phone and SSN — also category
 `pii`. Both are in the same binary.
 
@@ -257,11 +259,11 @@ The two records are near-identical in shape:
 | `description` | `description` |
 
 A rule adds `severity`, `action`, `applies_to`, `enabled`, `tags` and the
-richer match variants. So a hardcoded pattern set is, in effect, a rule pack
+richer match variants. So a hardcoded pattern set is, in effect, a ruleset
 with fewer fields that took a different route into the binary — and the
-system already has a first-class notion of built-in packs (`is_builtin`).
+system already has a first-class notion of built-in rulesets (`is_builtin`).
 
-Expressing those two as built-in packs would give them versioning, per-rule
+Expressing those two as built-in rulesets would give them versioning, per-rule
 overrides, hot reload and a console presence for free. The one thing they
 would lose is their own seat at the policy table: today `pii_regex` can hold
 its own weight and stage, and as rules they would inherit the rule engine's.

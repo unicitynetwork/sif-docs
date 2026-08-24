@@ -9,19 +9,19 @@ new detector — that is compiled code — but you almost never need to. See
 [How the pieces fit](../concepts/how-the-pieces-fit.md) if that distinction is
 new.
 
-Rules live in **packs** (rulesets). A pack is either shipped with the gateway
+Rules live in **rulesets**. A ruleset is either shipped with the gateway
 (built-in, file-owned) or created by you (stored in the database). You can
-only add rules to a pack you own.
+only add rules to a ruleset you own.
 
-## Before you start — you need a pack of your own
+## Before you start — you need a ruleset of your own
 
-Built-in packs cannot take new rules: the file on disk owns their contents and
+Built-in rulesets cannot take new rules: the file on disk owns their contents and
 a re-sync would discard anything you added. So the first step is always to
-have an editable pack.
+have an editable ruleset.
 
 Two ways to get one:
 
-**Clone a built-in.** Copies its rules into a new pack that you own, so you
+**Clone a built-in.** Copies its rules into a new ruleset that you own, so you
 start from working patterns and can edit any of them.
 
 ```bash
@@ -46,7 +46,7 @@ curl -X POST https://sif.unicity.network/manage/rulesets \
 ```
 
 In the dashboard, both routes are offered on **Guardrails › Rules › New rule**
-when you have no editable pack yet.
+when you have no editable ruleset yet.
 
 ## Write the rule
 
@@ -75,7 +75,7 @@ them.
 }
 ```
 
-POST it to the pack:
+POST it to the ruleset:
 
 ```bash
 curl -X POST https://sif.unicity.network/manage/rulesets/{ruleset_id}/rules \
@@ -135,7 +135,7 @@ paraphrase matters.
 
 ## From the dashboard instead
 
-**Guardrails › Rules › New rule**. Pick the pack, then the match type from the
+**Guardrails › Rules › New rule**. Pick the ruleset, then the match type from the
 five above — the editor changes to suit it, so a keyword rule gets a word list
 and a regex rule gets a pattern box.
 
@@ -177,20 +177,21 @@ Test both directions:
 
 Within one reload tick. There is no restart and no rebuild.
 
-The gateway recomposes the file packs with the database every
+The gateway recomposes the file rulesets with the database every
 `rules.reload_interval_secs` — 30 seconds by default — and immediately on a
 Redis message where Redis is configured. It then compiles and swaps the whole
 store atomically.
 
-**If your rule does not compile, the pack does not take effect and the
-previous one keeps serving.** A bad regex costs you that pack, not the
-firewall. The failure is recorded against the ruleset and shown on the
-[Guardrails › Rules](../dashboard/guardrails-rules.md) — worth checking after your first
-save.
+**If your rule does not compile, the tenant's whole composition fails to take
+effect and the previous one keeps serving.** A bad regex costs you your saved
+changes — the firewall itself keeps running. The failure is reported on every
+ruleset row at once and shown as one banner on
+[Guardrails › Rulesets](../dashboard/guardrails-rulesets.md) — worth checking after your
+first save.
 
 ## Tuning a built-in rule instead
 
-If a shipped rule is close but noisy, you do not have to clone the whole pack.
+If a shipped rule is close but noisy, you do not have to clone the whole ruleset.
 A **rule override** adjusts `enabled`, `score` and `severity` while leaving
 the body to the file:
 
@@ -205,7 +206,7 @@ Note both ids here are the **string** ids (`pii-detection`, `pii-fin-002`),
 not row ids — deliberately, so the override survives the file being re-synced.
 Any field you leave out keeps whatever the file says.
 
-Clone the pack only when you need to change the matching logic itself.
+Clone the ruleset only when you need to change the matching logic itself.
 
 ## Related
 

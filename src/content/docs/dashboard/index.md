@@ -18,7 +18,7 @@ link to from a runbook — including filtered ones.
 |---|---|---|
 | [Home](home.md) | — | What needs your attention, and the last 24 hours at a glance |
 | [Fleet](fleet-agents.md) | Agents, Keys, System | The machines calling the guard, and the credentials they hold |
-| [Guardrails](guardrails-policies.md) | Policies, Rules, Detectors, Tester | What SIF checks, and what it does when a check fires |
+| [Guardrails](guardrails-policies.md) | Policies, Rules, Rulesets, Detectors, Tester | What SIF checks, and what it does when a check fires |
 | [Activity](activity-threats.md) | Threats, Audit | Every decision the firewall made, and the audit trail behind it |
 | [Access](access-users.md) | Users, Identity, Tenants | Who can use this console, how they sign in, and the tenants on the platform |
 | [Reports](reports.md) | — | Not yet designed; the audit log does this work today |
@@ -33,7 +33,9 @@ link to from a runbook — including filtered ones.
 | Fleet › System | `/fleet/system` | [System](fleet-system.md) |
 | Guardrails › Policies | `/guardrails/policies` | [Policies](guardrails-policies.md) |
 | Guardrails › Rules | `/guardrails/rules` | [Rules](guardrails-rules.md) |
-| — a single rule | `/guardrails/rules/{pack}/{rule}` | [Rule detail](guardrails-rule-detail.md) |
+| — a single rule | `/guardrails/rules/{ruleset}/{rule}` | [Rule detail](guardrails-rule-detail.md) |
+| Guardrails › Rulesets | `/guardrails/rulesets` | [Rulesets](guardrails-rulesets.md) |
+| — a single ruleset | `/guardrails/rulesets?id={ruleset}` | [Rulesets](guardrails-rulesets.md) |
 | Guardrails › Detectors | `/guardrails/detectors` | [Detectors](guardrails-detectors.md) |
 | Guardrails › Tester | `/guardrails/tester` | [Tester](guardrails-tester.md) |
 | Activity › Threats | `/activity/threats` | [Threats](activity-threats.md) |

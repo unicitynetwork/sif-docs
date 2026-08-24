@@ -2,7 +2,7 @@
 title: Guardrails › Tester
 description: Put a prompt through the guard and see the verdict, without writing a client.
 sidebar:
-  order: 10
+  order: 11
 ---
 
 Guardrails › Tester (`/guardrails/tester`) sends a prompt through the guard exactly

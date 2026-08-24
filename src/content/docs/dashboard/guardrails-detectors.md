@@ -2,7 +2,7 @@
 title: Guardrails › Detectors
 description: Which detectors this build loaded, and which models back them.
 sidebar:
-  order: 9
+  order: 10
 ---
 
 Guardrails › Detectors (`/guardrails/detectors`) shows what the running binary
@@ -29,7 +29,7 @@ Each card gives the detector's id, a line on what it does, and its kind:
 | Kind | What it is |
 |---|---|
 | `keyword` | Literal word lists. The cheapest check there is, and the first to run. |
-| `regex_detector` | Standalone patterns outside the packs. Mostly secret shapes. |
+| `regex_detector` | Standalone patterns outside the rulesets. Mostly secret shapes. |
 | `yara` | YARA rules, for payload shapes a regex cannot describe. |
 
 A card also says whether the detector is running at its default configuration or

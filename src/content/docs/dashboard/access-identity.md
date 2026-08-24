@@ -2,7 +2,7 @@
 title: Access › Identity
 description: Configure enterprise SSO — OIDC issuer, client credentials, and group-to-role mapping.
 sidebar:
-  order: 14
+  order: 15
 ---
 
 Access › Identity (`/access/identity`) configures single sign-on, so people sign in

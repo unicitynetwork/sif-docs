@@ -2,7 +2,7 @@
 title: Reports
 description: Not yet designed — the audit log does this work today.
 sidebar:
-  order: 16
+  order: 17
 ---
 
 Reports (`/reports`) is a section that exists in the navigation and has no screen

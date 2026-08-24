@@ -9,11 +9,11 @@ difference is only where each one is stored.
 
 Rules are read by exactly one detector — `rule_engine`. The other detectors
 carry their own content. See [How the pieces fit](how-the-pieces-fit.md) for
-the full relationship between detectors, rules, packs and policies.
+the full relationship between detectors, rules, rulesets and policies.
 
 ## File format — YAML
 
-A pack is a YAML document: a `ruleset:` header, then a list of `rules:`. This
+A ruleset is a YAML document: a `ruleset:` header, then a list of `rules:`. This
 is from `rules/pii-detection.yaml`, shipped with the gateway:
 
 ```yaml
@@ -94,8 +94,8 @@ null, in which case the file's value stands.
 Overrides are keyed on the *string* ids `(ruleset_id, rule_id)` rather than
 row ids, precisely so they survive a file re-sync.
 
-To change a built-in rule's matching logic, **clone the pack**. That copies
-its rules into an editable pack, which you then own.
+To change a built-in rule's matching logic, **clone the ruleset**. That copies
+its rules into an editable ruleset, which you then own.
 
 ## Hot reload
 
@@ -106,17 +106,19 @@ one writer so they cannot disagree:
 2. **On a Redis message** — when Redis is configured, a change triggers the
    same path, so it is near-immediate.
 
-Each pass reads the file packs **and the database**, composes them per
+Each pass reads the file rulesets **and the database**, composes them per
 tenant, compiles, and swaps the whole store atomically. No in-flight request
 sees a mixed state, and there is no detection gap — the previous store keeps
 evaluating until the new one is ready.
 
 Two behaviours are deliberate:
 
-- **A pack that fails to compile does not take effect, and the previous store
-  keeps serving.** A bad regex costs you that pack, not the firewall. The
-  failure is recorded against the ruleset and shown on the
-  [Guardrails › Rules](../dashboard/guardrails-rules.md).
+- **A ruleset that fails to compile fails the tenant's whole composition:
+  nothing saved since the last good composition takes effect, and the previous
+  store keeps serving.** A bad regex costs you your saved changes — the
+  firewall itself keeps running. The failure is the tenant's, reported on every
+  ruleset row at once, and shown as one banner on
+  [Guardrails › Rulesets](../dashboard/guardrails-rulesets.md).
 - **If the database is unreachable, the previous snapshot is kept** rather
   than falling back to files alone — which would silently discard every
   customisation until the database returned.
