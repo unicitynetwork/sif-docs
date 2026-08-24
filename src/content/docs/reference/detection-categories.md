@@ -74,7 +74,7 @@ After this rule loads, `internal_disclosure` becomes a usable category on [Guard
 
 ## What category does NOT do
 
-- **Categories are not severity.** Severity is a separate `meta` key (`low` / `medium` / `high` / `critical`).
+- **Categories are not severity.** Severity is a separate `meta` key (`info` / `low` / `medium` / `high` / `critical`).
 - **Categories are not detectors.** Multiple detectors can emit the same category, and one detector can emit multiple categories across requests.
 - **Categories are not enforcement.** They describe what was detected; the policy decides whether to block.
 

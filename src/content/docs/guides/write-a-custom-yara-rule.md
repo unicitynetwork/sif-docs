@@ -53,7 +53,7 @@ Required `meta` keys recognised by the gateway:
 |---|---|---|
 | `description` | string | Shown in dashboard detail panels |
 | `category` | string | Drives policy aggregation. Use one of the [reference categories](../reference/detection-categories.md) or define a custom one |
-| `severity` | `low`/`medium`/`high`/`critical` | Default contribution weight to the risk score |
+| `severity` | `info`/`low`/`medium`/`high`/`critical` | Default contribution weight to the risk score |
 
 Optional:
 
