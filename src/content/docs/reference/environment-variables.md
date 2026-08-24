@@ -48,9 +48,9 @@ If the admin user is created with the default password, the gateway logs a warni
 
 | Variable | Default | Notes |
 |---|---|---|
-| `SIF_JWT_SECRET` | random per-boot (warning logged) | HMAC-SHA256 secret for management-API JWTs. **Required** for sessions to survive restarts. |
+| `SIF_JWT_SECRET` | none outside dev mode; random per boot in dev mode | HMAC-SHA256 secret for management-API JWTs. The gateway refuses to start without it outside dev mode. |
 
-The `SIF_*` prefix here is legacy; the value is the JWT signing secret. Set a long random string in production (e.g. `head -c 32 /dev/urandom | base64`).
+The `SIF_*` prefix here is legacy; the value is the JWT signing secret. Set a long random string in production (e.g. `head -c 32 /dev/urandom | base64`). In dev mode, an unset value generates an ephemeral secret and logs a warning; existing dashboard sessions become invalid when the process restarts.
 
 ## `migrate` subcommand
 
