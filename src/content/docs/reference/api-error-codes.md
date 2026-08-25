@@ -58,11 +58,13 @@ and it holds a hand-written `snake_case` string
 
 ## `/api/v1/*` error codes
 
-Eight values, from `ErrorCode` via `ApiError::error_code()`:
+Ten values, from `ErrorCode` via `ApiError::error_code()`:
 
 | `code` | HTTP status | What it means | Typical fix |
 |---|---|---|---|
 | `InvalidRequest` | `400` | Body malformed, required field missing, query parameter invalid, **or** resource not found (this endpoint collapses 404s into `InvalidRequest`) | Inspect `message`; fix the request |
+| `PolicyIsClassLed` | `400` | The key is bound to an agent class, so the class picks the policy — and the request supplied a `policy_id` anyway. Refused rather than ignored, so a caller never believes it chose a tier it did not get | Remove `policy_id` from the request. `message` names the class |
+| `PolicyRequired` | `400` | The key is bound to no agent class, so nothing else can pick the policy — and the request named none | Add a `policy_id`, or bind the key to an agent class |
 | `Unauthorized` | `401` | No `Authorization` / `X-API-Key` header, or the supplied key did not validate | Mint or rotate the key — see [Add and rotate API keys](../guides/add-and-rotate-api-keys.md) |
 | `ApiKeyExpired` | `401` | The API key's `expires_at` has passed | Rotate or reissue the key |
 | `Forbidden` | `403` | Authenticated but not permitted | Use a key with the right scope |

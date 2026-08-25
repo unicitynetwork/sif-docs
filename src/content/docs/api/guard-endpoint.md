@@ -221,7 +221,9 @@ id is echoed on the `X-Request-Id` response header instead, not in the body:
 
 | HTTP status | `code` | Typical cause for this endpoint |
 |---|---|---|
-| `400` | `InvalidRequest` | Missing / malformed `messages`, unknown role, invalid `policy_id`, oversize message count, or a `policy_id` that conflicts with the key's agent-class mode (see above) |
+| `400` | `InvalidRequest` | Missing / malformed `messages`, unknown role, invalid `policy_id`, or oversize message count |
+| `400` | `PolicyIsClassLed` | The key is bound to an agent class, and the request sent a `policy_id` anyway. **Remove `policy_id`** — the class picks. `message` names the class |
+| `400` | `PolicyRequired` | The key is bound to no agent class, and the request sent no `policy_id`. **Add one** — nothing else can pick |
 | `401` | `Unauthorized` | Missing or invalid API key |
 | `401` | `ApiKeyExpired` | API key's `expires_at` has passed |
 | `403` | `Forbidden` | Key is suspended / revoked |
