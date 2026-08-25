@@ -5,15 +5,25 @@ description: Common failure modes and how to fix them.
 
 A runbook for the alerts and symptoms that operators encounter most often.
 
-## Gateway returns 503 for guard calls
+## Gateway returns 503 or 504 for guard calls
 
-### `pipeline_timeout`
+There is no distinct `pipeline_timeout` or `degraded` error code — see
+[Reference → API error codes](../reference/api-error-codes.md). Everything
+below arrives as the standard two-field envelope, and the **`message` is
+what tells the causes apart**:
 
 ```json
-{ "error": "pipeline_timeout" }
+{ "code": "ServiceUnavailable", "message": "…" }
 ```
 
-A detector exceeded `global_timeout_ms`. Identify the slow detector:
+### Detection timed out — HTTP `504`
+
+A detector exceeded `global_timeout_ms`. Note the mismatch: the status is
+`504 Gateway Timeout` but the wire `code` is `ServiceUnavailable`, because
+`ApiError::Timeout` maps to that code. Match on the status, not the code, if
+you need to single out timeouts.
+
+Identify the slow detector:
 
 ```bash
 curl http://localhost:8080/manage/detectors -H "Authorization: ..." \
@@ -26,13 +36,25 @@ Fixes:
 2. Disable the slow detector for this policy (acceptable if it's optional).
 3. Provision more CPU; ML detectors are CPU-bound.
 
-### `degraded`
+### A detector is degraded — usually **not** an error at all
+
+`degraded` is not an error code and does not appear in an error body. It is
+a field on a **successful `200` guard response**:
 
 ```json
-{ "error": "degraded", "detector": "prompt_injection_ml" }
+{ "action": "allow", "blocked": false, "degraded": true }
 ```
 
-A required detector is in a degraded state. Check which:
+That is the fail-open direction, and the field is the only sign of it — the
+request was served without being screened the way the policy asked. Alert on
+`degraded: true`, and use `AuditQuery { degraded_only: true }` to find past
+occurrences. A caller reading `action` alone will treat unscreened content
+as safe.
+
+A detector in a bad state can also surface as a `500` with code
+`InternalError` when the pipeline itself errors rather than degrading.
+
+Check which detector is unhealthy:
 
 ```bash
 curl http://localhost:8080/manage/detectors -H "Authorization: ..." \

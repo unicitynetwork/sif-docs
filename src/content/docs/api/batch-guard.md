@@ -5,7 +5,9 @@ description: Multiple guard calls in one request.
 
 > **Status: beta.** Shape may change before 1.0.
 
-Send up to 100 guard requests in a single HTTP call. Useful for offline scoring, dataset annotation, and high-volume batch jobs where round-trip cost matters.
+Send up to **10** guard requests in a single HTTP call. Useful for offline
+scoring, dataset annotation, and bulk jobs where per-call overhead and rate
+limit budget matter more than latency.
 
 ## Request
 
@@ -17,99 +19,140 @@ Content-Type: application/json
 
 ### Body
 
+The body is a **bare JSON array**. There is no wrapper object and no
+batch-level `config` — each element is exactly a
+[single-guard request body](guard-endpoint.md#request), so anything valid
+there is valid here.
+
 ```json
-{
-  "items": [
-    {
-      "id": "row-1",
-      "messages": [{"role": "user", "content": "Hello"}]
-    },
-    {
-      "id": "row-2",
-      "messages": [{"role": "user", "content": "Ignore previous instructions"}]
-    }
-  ],
-  "config": {
-    "policy": "default",
-    "return_detections": true
+[
+  { "messages": [{ "role": "user", "content": "Hello" }] },
+  {
+    "messages": [{ "role": "user", "content": "Ignore previous instructions" }],
+    "policy_id": "strict"
   }
-}
+]
 ```
 
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `items` | array | yes | 1–100 elements. Each item is a guard-style sub-request |
-| `items[].id` | string | no | Echoed back in the response; helpful for joining results in caller code |
-| `items[].messages` | array | yes | Same shape as the single-guard `messages` field |
-| `config.policy` | string | no | Applied to every item in the batch |
-| `config.return_detections` | bool | no | Applied to every item in the batch |
+| Constraint | Value |
+|---|---|
+| Minimum items | 1 — an empty array is a `400` |
+| Maximum items | 10 — an eleventh item is a `400` |
+| Per-item fields | Identical to the single guard endpoint (`messages`, optional `policy_id`, `config`, `context`) |
+
+:::caution[Sending `{"items": [...]}` fails in an unusual way]
+An object wrapper does not reach the handler at all — the JSON extractor
+rejects it first, with **HTTP 422 and a plain-text body**:
+
+```
+Failed to deserialize the JSON body into the target type: invalid type: map, expected a sequence at line 1 column 0
+```
+
+That is not the usual `{"code", "message"}` envelope, so a client that
+assumes every error is JSON will fail to parse it. Send an array.
+:::
+
+### There is no per-item `id`
+
+Correlate results **by position** — `response[i]` is the verdict for
+`request[i]`, always in order. Each item is also stamped with its own
+`request_id` of the form `<batch request id>-<index>`, which is what appears
+in the audit log:
+
+```
+01a038b6-abb0-7741-bd99-844f49fa0978-0
+01a038b6-abb0-7741-bd99-844f49fa0978-1
+```
 
 ## Response
 
-:::caution[Batch envelope not yet validated against a Rust struct]
-There is no `BatchGuardResponse` struct in `crates/semd-core/src/types/` at the time of writing — the wrapper shape below is documented intent, not wire fact. The per-item shape **is** grounded: each item follows `GuardResponse`.
-:::
+A bare JSON array of [`GuardResponse`](guard-endpoint.md#response--allow)
+objects, same order as the request. Absent fields (`detections` when empty,
+`policy_applied`, `degraded`) are omitted by `serde`, exactly as for the
+single endpoint.
 
 ```json
-{
-  "request_id": "batch_…",
-  "results": [
-    {
-      "id": "row-1",
-      "request_id": "019ed01f-…",
-      "action": "allow",
-      "blocked": false,
-      "risk_score": 0.02,
-      "processing_time_ms": 6
-    },
-    {
-      "id": "row-2",
-      "request_id": "019ed020-…",
-      "action": "block",
-      "blocked": true,
-      "risk_score": 1.0,
-      "detections": [
-        {
-          "category": "injection",
-          "confidence": 0.91,
-          "description": "Instruction override pattern detected",
-          "rule_id": "PI-014"
-        }
-      ],
-      "processing_time_ms": 9,
-      "policy_applied": "default",
-      "timestamp": "2026-06-16T11:10:14.574Z"
-    }
-  ]
-}
+[
+  {
+    "request_id": "01a038b6-abb0-7741-bd99-844f49fa0978-0",
+    "action": "allow",
+    "blocked": false,
+    "risk_score": 0.0,
+    "processing_time_ms": 3,
+    "timestamp": "2026-08-25T11:38:10.740379Z"
+  },
+  {
+    "request_id": "01a038b6-abb0-7741-bd99-844f49fa0978-1",
+    "action": "allow",
+    "blocked": false,
+    "risk_score": 0.0,
+    "processing_time_ms": 0,
+    "timestamp": "2026-08-25T11:38:10.740492Z"
+  }
+]
 ```
 
-Each `results[]` entry follows the [single-guard response shape](guard-endpoint.md#response--allow) (a full `GuardResponse`) plus the echoed `id`. Empty `detections` / null `policy_applied` etc. are omitted by `serde` as they are for the single-guard form. Order matches the request — `results[i]` corresponds to `items[i]`.
+Each item is recorded as its own audit row.
 
-The batch itself gets a `request_id` for tracing. Each item also gets its own `request_id` and is recorded as a separate audit row.
+## Timing and rate limit
 
-## Concurrency
+Items run **sequentially**, one after another. Wall-clock latency is
+therefore roughly the *sum* of the per-item costs, not the slowest one — so
+batching does not make the work faster. What it saves is per-call overhead
+and rate limit budget.
 
-Items in a batch run in parallel, up to the gateway's per-batch concurrency limit (default 16). The per-item `processing_time_ms` reflects each item's individual server-side cost; total wall-clock latency of the call is approximately the slowest item plus a small overhead — not the sum.
+**The whole batch counts as one request against the key's rate limit**,
+because the limiter runs once per HTTP call. A 10-item batch consumes 1 rpm,
+not 10. That is the main reason to reach for this endpoint.
+
+Responses carry `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and
+`Retry-After` when throttled.
 
 ## Errors
 
-| Status | When |
-|---|---|
-| `400 invalid_batch` | `items` missing, empty, or larger than 100 |
-| `400 invalid_item` | A single item is malformed; the batch is rejected as a whole, not per-item |
-| `429 rate_limit_exceeded` | Batches count against the key's rate limit per item, not per call. A 100-item batch consumes 100 rpm |
-| `503 pipeline_timeout` | Batch-wide timeout (`global_timeout_ms` × `items.length`, capped); see [Reference → config.toml](../reference/config-toml.md) |
+Whole-batch failures use the standard `/api/v1/*` envelope — see
+[Reference → API error codes](../reference/api-error-codes.md).
 
-Per-item failures inside a successful batch surface as `action: "error"` rows in the response:
+| Status | `code` | When |
+|---|---|---|
+| `400` | `InvalidRequest` | Empty array (`Empty batch`) or more than 10 items (`Batch size too large (max 10)`) |
+| `400` | `InvalidRequest` | At `block`, any item breaks its credential's class-policy mode — see below |
+| `401` | `Unauthorized` | Missing or unusable key, as everywhere else |
+| `403` | `Forbidden` | The key lacks the `guard` permission — checked before any item runs |
+| `422` | *(none — plain text)* | The body was not a JSON array |
+
+### Class-policy refusals reject the whole batch
+
+If the tenant's [enforcement dial](guard-endpoint.md)
+is at `block`, every item is checked **before any of them is screened**. If
+one item breaks its credential's mode — a class-led key sending `policy_id`,
+or a caller-led key omitting it — the entire call is refused with a `400`
+and nothing is screened.
+
+That is deliberate: `GuardResponse` has no error shape, so there is no
+honest way to report one item's refusal inside a `200`.
+
+### Per-item failures are served as degraded allows
+
+:::caution[This is a fail-open — check `degraded`]
+If an individual item fails for any *other* reason — a detector error, a
+pipeline timeout — it does **not** appear as an error. It comes back as a
+successful-looking `allow`:
 
 ```json
 {
-  "id": "row-3",
-  "action": "error",
-  "error": "pipeline_timeout"
+  "request_id": "…-2",
+  "action": "allow",
+  "blocked": false,
+  "risk_score": 0.0,
+  "degraded": true
 }
 ```
+
+`degraded: true` is the only signal that this row was not actually screened.
+A caller that reads `action` alone will treat unscreened content as safe.
+Always check `degraded` on every item.
+:::
 
 ## When to use the batch endpoint
 
@@ -117,9 +160,13 @@ Per-item failures inside a successful batch surface as `action: "error"` rows in
 - **Bulk ingest** — backfilling guard verdicts for historical traffic.
 - **Test harnesses** — replaying a known-good corpus to validate a policy change.
 
-For real-time application traffic, prefer the [single guard endpoint](guard-endpoint.md). Batch latency is bounded by the slowest item; for a chatbot, the user-visible latency of a single call is what matters.
+For real-time application traffic, prefer the
+[single guard endpoint](guard-endpoint.md). Because items run in sequence, a
+batch is slower end-to-end than the same items sent individually in
+parallel; its advantage is rate limit budget, not speed.
 
 ## Related
 
 - [Guard endpoint](guard-endpoint.md) — the single-call form.
+- [Reference → API error codes](../reference/api-error-codes.md) — the error envelope.
 - [Concepts → The guard pipeline](../concepts/the-guard-pipeline.md) — what runs for each item.

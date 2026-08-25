@@ -25,20 +25,42 @@ Keys are `semd_` followed by 32 random alphanumeric characters. They are case-se
 
 ## Error responses
 
-| Status | `error` value | Meaning |
-|---|---|---|
-| `401` | `missing_credentials` | No `Authorization` or `X-API-Key` header |
-| `401` | `invalid_key` | Key does not match any registered secret |
-| `401` | `expired` | Key was valid but its expiry has passed |
-| `403` | `key_disabled` | Key is on file but disabled — see [Add and rotate API keys](../guides/add-and-rotate-api-keys.md) |
-| `403` | `key_revoked` | Key is on file but permanently revoked |
-| `429` | `rate_limit_exceeded` | Per-key rate limit exceeded; honour `Retry-After` |
-
-All error responses are JSON:
+Every `/api/v1/*` error is a flat JSON object with exactly two fields:
 
 ```json
-{ "error": "rate_limit_exceeded", "limit_rpm": 60 }
+{ "code": "Unauthorized", "message": "Invalid API key" }
 ```
+
+`code` is PascalCase. The request id is returned on the `X-Request-Id`
+response header, not in the body. See
+[Reference → API error codes](../reference/api-error-codes.md) for the full
+envelope and every code — including `/manage/*`, which uses a **different**
+shape (`error`, not `code`, and `snake_case` values).
+
+| Status | `code` | Cause |
+|---|---|---|
+| `401` | `Unauthorized` | No `Authorization` or `X-API-Key` header; or the key is unknown, disabled, revoked, or belongs to a suspended tenant |
+| `401` | `ApiKeyExpired` | The key is valid and active but past its `expires_at` |
+| `403` | `Forbidden` | The key authenticated but lacks the permission this endpoint needs (for example `guard`) |
+| `429` | `RateLimited` | Per-key rate limit exceeded — honour the `Retry-After` header, in seconds |
+
+### Why a disabled key looks exactly like a wrong one
+
+There is deliberately **no distinct code for disabled, revoked, or
+suspended-tenant keys.** All four cases — unknown secret, non-active
+status, suspended tenant, and no credentials at all — return the same
+`401 Unauthorized`. Only the `message` differs, and you should not parse it.
+
+That is a security property, not an oversight: distinguishing "this key
+does not exist" from "this key exists but is switched off" tells an
+attacker which of their guesses are real keys. If you need to know why a
+specific key stopped working, look it up in
+[Fleet › Keys](../dashboard/fleet-keys.md) or the audit log — not from the
+error the caller receives.
+
+Expiry is the single exception, and only because a caller can act on it:
+`ApiKeyExpired` tells a well-behaved client to go and rotate rather than
+retry. It is only returned for a key that is otherwise valid and active.
 
 ## Dev mode
 
