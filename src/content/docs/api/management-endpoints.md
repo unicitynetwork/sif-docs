@@ -1,6 +1,6 @@
 ---
 title: Management endpoints (beta)
-description: The /manage/* API for rules, policies, detectors, keys, and audit.
+description: The /manage/* API for rules, policies, detectors, keys, audit, and notifications.
 ---
 
 > **Status: beta.** Used by the dashboard and by operator scripts. Shapes may evolve before 1.0.
@@ -203,6 +203,45 @@ Response:
 ```
 
 Audit row fields: `id`, `request_id`, `event_type`, `action`, `message_count`, `total_chars`, `latency_ms`, `risk_score`, `policy_id`, `api_key_id` (the `key_prefix`), `app_id`, `user_id`, `session_id`, `detections`, `degraded`, `client_ip`, `user_agent`, `ruleset_version`, `timestamp`.
+
+## Notifications
+
+Operator notifications are conditions the gateway raises about the tenant's own configuration and clears itself when they end. The first kind, `rules.compile_failed`, fires when the tenant's saved rules stop compiling: the last good rule set stays enforced, the rulesets API reports `in_effect: false` with the compiler's `compile_error`, and the notification stands until a later save compiles. They are not alerts — an alert is a detection finding about something an endpoint did and can only be muted; a notification has a `resolved` state because its condition genuinely ends.
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/manage/notifications` | List notifications, newest change first |
+
+Requires `audit:read`, which every role has — the same tier that already exposes the compiler's complaint through the audit log.
+
+Query parameters:
+
+| Parameter | Type | Notes |
+|---|---|---|
+| `state` | string | `active` or `resolved`. Absent means both |
+| `kind` | string | Currently `rules.compile_failed`. Absent means all |
+| `page` | integer | 1-indexed. Default 1 |
+| `page_size` | integer | Default 50 |
+
+An unknown `state` or `kind` is a `400` naming the field and the allowed values.
+
+Response:
+
+```json
+{
+  "data": [ { /* notification */ } ],
+  "total": 1,
+  "page": 1,
+  "page_size": 50,
+  "has_more": false
+}
+```
+
+Notification fields: `id`, `kind`, `subject` (what the condition is about — empty for a per-tenant condition such as a compile failure), `state` (`active` or `resolved`), `detail` (the producer's message — for a compile failure the compiler's complaint, kept current if the complaint changes), `first_seen` (when this episode opened), `last_seen` (the last observed change of the condition, not the last check), `resolved_at` (when it cleared; `null` while active).
+
+Each failure episode is its own row: recovery resolves the open row, and failing again later opens a new one, so the history of episodes is kept.
+
+There are deliberately no triage verbs — no mute, acknowledge, or delete. The only way a notification leaves the active list is the condition clearing; for `rules.compile_failed` that means fixing the rule the `compile_error` names under [Rulesets and rules](#rulesets-and-rules).
 
 ## Stats
 
