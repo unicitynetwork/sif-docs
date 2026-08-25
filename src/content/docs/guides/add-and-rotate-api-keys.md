@@ -29,16 +29,53 @@ X-API-Key: semd_live_a3f0...
 
 The two are equivalent. The Python SDK uses `X-API-Key`.
 
-## Rotate a key (mint-and-revoke pattern)
+## Rotate a key
 
-There is **no in-place `/rotate` endpoint** on the live router (the page title is historical; the operation is a documented pattern, not an API call). To rotate:
+`POST /manage/api-keys/{id}/rotate` (`crates/semd-manage/src/router.rs`)
+issues a new secret for the same logical key in one call. It carries the
+old key's `name`, policy binding, rate limit, agent-class binding, `app_id`
+and `metadata` forward onto a new row, and keeps the **old** secret working
+for a grace period (`grace_period_seconds`, default `3600` seconds / 1
+hour, max 30 days; `0` means immediate cutover) before that old row's own
+`expires_at` catches up and it stops authenticating.
+
+```bash
+curl -X POST https://sif.unicity.network/manage/api-keys/b93f228d-23ae-45cb-a39b-490000889aea/rotate \
+  -H "Authorization: Bearer semd_admin_key" \
+  -H "Content-Type: application/json" \
+  -d '{"grace_period_seconds": 3600}'
+```
+
+Response — the new secret, shown once, plus when the old one stops working:
+
+```json
+{
+  "id": "c04a339e-34bf-56dc-b4ac-5a1111990bfb",
+  "api_key": "semd_b4a1d9f2c3e08d5g7b9f3c2e4d6g8b0f",
+  "key_prefix": "semd_b4a1d9f2",
+  "name": "support-bot-prod",
+  "created_at": "2026-08-24T18:42:10.123Z",
+  "rotated_from": "b93f228d-23ae-45cb-a39b-490000889aea",
+  "old_key_expires_at": "2026-08-24T19:42:10.123Z"
+}
+```
+
+Deploy the new `api_key` before `old_key_expires_at`; both secrets
+authenticate until then.
+
+### Watching traffic move over before cutting the old key off
+
+`/rotate`'s grace period is a fixed timer set at rotation time. If you'd
+rather confirm the new key is actually in use before the old one stops
+working — an open-ended wait, not a timer — use the manual pattern
+instead:
 
 1. **Mint a new key** with the same `name` and `policy_id` as the old one — via [Fleet › Keys](../dashboard/fleet-keys.md) or `POST /manage/api-keys`. Copy the secret from the success-screen `api_key` field.
 2. **Deploy the new secret** into your application's secret store. Both old and new keys are now valid simultaneously — the audit log records which was used per request.
 3. **Verify the new key is in use** by filtering audit by `key_prefix`. Once the old key has gone quiet for one full request cycle, move on.
 4. **Revoke the old key** via the dashboard or `POST /manage/api-keys/{id}/revoke`. The audit history is retained; only the secret is invalidated.
 
-There is no hard limit on how long both keys can coexist — the overlap window is whatever your deploy cadence requires.
+There is no hard limit on how long both keys can coexist this way — the overlap window is whatever your deploy cadence requires.
 
 ## Suspend vs. revoke
 
@@ -51,17 +88,21 @@ Rule of thumb: suspend first, revoke later, once you're certain the key isn't ne
 
 ## Rate-limit response
 
-When a key exceeds its rate limit:
+When a key exceeds its rate limit, `/api/v1/guard` returns:
 
 ```http
 HTTP/1.1 429 Too Many Requests
-Retry-After: 17
 Content-Type: application/json
 
-{ "error": "rate_limit_exceeded", "limit_rpm": 60 }
+{
+  "code": "RateLimited",
+  "message": "Rate limit exceeded"
+}
 ```
 
-The `Retry-After` header is in seconds. SDK clients honour it automatically; bare HTTP clients should back off and retry. See [Reference → API error codes](../reference/api-error-codes.md).
+No `Retry-After` header, no `retry_after_ms`, no `limit_rpm` — there is
+nothing else in this response to key a backoff off of. Retry with your own
+backoff. See [Reference → API error codes](../reference/api-error-codes.md).
 
 ## Audit the key usage
 

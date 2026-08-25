@@ -13,7 +13,7 @@ A key is a random 32-character secret with the prefix `semd_live_`:
 semd_live_a3f0c8e1b2d97c4f6a8e2b1d3c5f7a9e
 ```
 
-The full secret is shown once — at creation, in the `api_key` field of the response — and stored hashed in Postgres. Lost keys cannot be recovered; the operator has to mint a new key and revoke the old one (there is no in-place `/rotate` endpoint — see [How-to → Add and rotate API keys](../guides/add-and-rotate-api-keys.md)).
+The full secret is shown once — at creation, in the `api_key` field of the response — and stored hashed in Postgres. A lost secret cannot be recovered; the operator has to issue a new one, either in place with `POST /manage/api-keys/{id}/rotate` (same key record, new secret) or by minting a new key and revoking the old one — see [How-to → Add and rotate API keys](../guides/add-and-rotate-api-keys.md).
 
 ## How it's presented
 
@@ -28,14 +28,32 @@ Both are equivalent. The Python SDK uses `X-API-Key`. Most curl examples use `Au
 
 ## Key → policy binding
 
-Every key is bound to exactly one policy when it is created. The binding is the *only* way a policy affects a request: there is no way to override the policy per-call.
+Every key is bound to a policy in one of two ways, depending on whether the
+key carries an **agent class**:
 
-To change a key's policy, edit the key on [Fleet › Keys](../dashboard/fleet-keys.md) or via `PATCH /manage/api-keys/{id}`.
+- **Class-led** — the key is bound to a class (`PUT /manage/api-keys/{id}/agent-class`,
+  or the **Edit…** action on [Fleet › Keys](../dashboard/fleet-keys.md)). The
+  class's policy is the only source. The key's own `policy_id` — set at
+  creation or via `PATCH /manage/api-keys/{id}` — is **deprecated**: the
+  column still exists and still holds whatever value it had, but it is no
+  longer consulted for a classed key. Change the policy on the class instead
+  (see [Fleet › Agents](../dashboard/fleet-agents.md)); every key bound to
+  the class follows in one write.
+- **Caller-led** — the key carries no class. Its own `policy_id` (or an
+  explicit `policy_id` on the request, which wins) is what applies, falling
+  back to the tenant default if neither is set.
 
-Multiple keys can share a policy. This is the recommended pattern for multi-application deployments:
+See [Concepts → Policies](policies.md#how-a-requests-policy-is-chosen) for
+the full resolution order and [Guard endpoint → Agent classes and
+`policy_id`](../api/guard-endpoint.md#agent-classes-and-policy_id) for the
+wire-level rule, including the rollout dial that phases this in without
+breaking existing callers.
+
+Multiple keys can share a policy, whether bound directly or through a shared
+class. This is the recommended pattern for multi-application deployments:
 
 - One policy per **risk tier** (e.g. `default`, `strict`, `permissive-internal`).
-- Many keys bound to each policy, one per calling application.
+- Many keys bound to each policy or class, one per calling application.
 
 ## Rate limits
 
@@ -43,13 +61,16 @@ Each key has a `rate_limit_rpm` (requests per minute). The limit is enforced per
 
 ```http
 HTTP/1.1 429 Too Many Requests
-Retry-After: 17
 Content-Type: application/json
 
-{ "error": "rate_limit_exceeded", "limit_rpm": 60 }
+{
+  "code": "RateLimited",
+  "message": "Rate limit exceeded"
+}
 ```
 
-`Retry-After` is in seconds. SDK clients honour it automatically.
+No `Retry-After` header and no other field to key a backoff off of — retry
+with your own. See [Reference → API error codes](../reference/api-error-codes.md).
 
 A limit of `0` means unlimited. Use unlimited only for keys whose calling application has its own rate limit.
 
@@ -85,4 +106,5 @@ For stronger isolation, run separate gateway instances per tenant with separate 
 
 - [HTTP API → Authentication](../api/authentication.md) — the wire-level reference.
 - [Fleet › Keys](../dashboard/fleet-keys.md) — the operator UI.
+- [Fleet › Agents](../dashboard/fleet-agents.md) — agent classes, the unit of policy for classed keys.
 - [How-to → Add and rotate API keys](../guides/add-and-rotate-api-keys.md) — the operational lifecycle.

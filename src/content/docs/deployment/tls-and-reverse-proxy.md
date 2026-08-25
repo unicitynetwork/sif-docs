@@ -14,6 +14,7 @@ The gateway listens on plain HTTP by default — it does not terminate TLS itsel
 | Forward `X-Forwarded-For` | The audit log records caller IPs |
 | Upgrade WebSocket | The `/ws/events` endpoint is WebSocket; the proxy must support `Upgrade: websocket` |
 | Distribute across replicas | If running multiple gateway processes |
+| Leave `%2F` alone | Agent class slugs are path-like (`eng/code-reviewer`) and travel percent-encoded in single-class registry routes — `/manage/registry/classes/eng%2Fcode-reviewer`. A proxy that normalises or decodes `%2F` before forwarding breaks every one of those routes. |
 
 ## nginx
 

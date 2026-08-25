@@ -3,107 +3,147 @@ title: API error codes
 description: Every error the HTTP API can return — envelope, codes, and cause.
 ---
 
-Grounded in [`crates/semd-core/src/error.rs::ErrorCode`](https://github.com/unicitynetwork/semanticd/blob/main/crates/semd-core/src/error.rs) (the enum) and [`crates/semd-api/src/error.rs::ApiError`](https://github.com/unicitynetwork/semanticd/blob/main/crates/semd-api/src/error.rs) (the per-variant HTTP status mapping).
+Grounded in [`crates/semd-core/src/error.rs::ErrorCode`](https://github.com/unicitynetwork/semanticd/blob/main/crates/semd-core/src/error.rs) and [`crates/semd-api/src/error.rs::ApiError`](https://github.com/unicitynetwork/semanticd/blob/main/crates/semd-api/src/error.rs) for `/api/v1/*`, and in [`crates/semd-manage/src/error.rs::ManageError`](https://github.com/unicitynetwork/semanticd/blob/main/crates/semd-manage/src/error.rs) for `/manage/*`.
 
 ## Error envelope
 
-Every error response from `/api/v1/*` and `/manage/*` shares the same JSON shape:
+There is no single shared envelope. `/api/v1/*` and `/manage/*` are two
+independent crates with two independent error types, and the two land on
+different wire shapes — both flat (neither wraps the body in an
+`"error": {...}` object), but with different field names and different code
+casing. Pick the right one for the endpoint you're calling.
+
+### `/api/v1/*` — `ApiError` (semd-api)
 
 ```json
 {
-  "error": {
-    "code": "RATE_LIMITED",
-    "message": "Rate limit exceeded for this API key.",
-    "request_id": "019ed01f-…",
-    "retry_after_ms": 17000
-  }
+  "code": "RateLimited",
+  "message": "Rate limit exceeded"
 }
 ```
+
+`code` is the `ErrorCode` variant's Rust name, produced via
+`format!("{code:?}")` in `ErrorResponse::new` — **not** `ErrorCode`'s own
+`SCREAMING_SNAKE_CASE` `Serialize` impl, which this path never calls. The
+struct also has `request_id` and `details` fields, but no production
+handler ever populates them (`with_request_id` / `with_details` are only
+exercised by a unit test) — both are declared `skip_serializing_if =
+"Option::is_none"`, so in practice they never appear on the wire. The
+request id is on the `X-Request-Id` response header instead, not in the
+body.
 
 | Field | Always present | Meaning |
 |---|---|---|
-| `error.code` | yes | One of the seven values below |
-| `error.message` | yes | Human-readable explanation |
-| `error.request_id` | yes | Correlate with the audit log |
-| `error.retry_after_ms` | only on `RATE_LIMITED` | How many ms to wait before retrying |
+| `code` | yes | One of the eight `/api/v1/*` codes below, PascalCase |
+| `message` | yes | Human-readable explanation |
 
-Two optional top-level fields appear only in specific cases:
-
-| Field | When | Meaning |
-|---|---|---|
-| `action` | Fail-open responses | The gateway hit an internal error but chose to let the caller proceed. Value is `"allow"`. |
-| `degraded` | Pipeline partial failure | `true` when part of the detection pipeline failed and the response is best-effort. |
-
-Example of a fail-open error (typically returned with HTTP 200, **not** an HTTP error):
+### `/manage/*` — `ManageError` (semd-manage)
 
 ```json
 {
-  "error": { "code": "INTERNAL_ERROR", "message": "Detector inference failed", "request_id": "019ed01f-…" },
-  "action": "allow",
-  "degraded": true
+  "error": "conflict",
+  "message": "policy 'strict' already exists"
 }
 ```
 
-## The seven error codes
+A different struct entirely: the code field is named `error`, not `code`,
+and it holds a hand-written `snake_case` string
+(`ManageError::error_code()`), not an enum's `Debug` name. There is no
+`request_id` field on this struct at all.
 
-Wire format is `SCREAMING_SNAKE_CASE`. Every error in every endpoint resolves to one of these:
+| Field | Always present | Meaning |
+|---|---|---|
+| `error` | yes | One of the ten `/manage/*` codes below, `snake_case` |
+| `message` | yes | Human-readable explanation |
 
-| `error.code` | HTTP status | What it means | Typical fix |
+## `/api/v1/*` error codes
+
+Eight values, from `ErrorCode` via `ApiError::error_code()`:
+
+| `code` | HTTP status | What it means | Typical fix |
 |---|---|---|---|
-| `INVALID_REQUEST` | `400` | Body malformed, required field missing, query parameter invalid, **or** resource not found (the API collapses 404s into `INVALID_REQUEST`) | Inspect `error.message`; fix the request |
-| `UNAUTHORIZED` | `401` | No `Authorization` / `X-API-Key` header, or the supplied key did not validate | Mint or rotate the key — see [Add and rotate API keys](../guides/add-and-rotate-api-keys.md) |
-| `FORBIDDEN` | `403` | Authenticated but not permitted (e.g. management endpoint called with a guard-only key) | Use a key / JWT with the right scope |
-| `RATE_LIMITED` | `429` | Per-key rate limit exceeded | Honour `error.retry_after_ms`; raise the key's `rate_limit_rpm` if persistent |
-| `PAYLOAD_TOO_LARGE` | `413` | Body size exceeds `server.request_body_limit` | Send smaller messages or raise the limit ([Reference → config.toml](config-toml.md)) |
-| `INTERNAL_ERROR` | `500` | Unhandled exception, detector failure, or generic server-side error | Check the gateway logs; the `request_id` correlates with `tracing` output |
-| `SERVICE_UNAVAILABLE` | `503` | Dependency (Postgres / Redis / model) unreachable, or the gateway is shutting down | Retry with backoff; check dependency health |
+| `InvalidRequest` | `400` | Body malformed, required field missing, query parameter invalid, **or** resource not found (this endpoint collapses 404s into `InvalidRequest`) | Inspect `message`; fix the request |
+| `Unauthorized` | `401` | No `Authorization` / `X-API-Key` header, or the supplied key did not validate | Mint or rotate the key — see [Add and rotate API keys](../guides/add-and-rotate-api-keys.md) |
+| `ApiKeyExpired` | `401` | The API key's `expires_at` has passed | Rotate or reissue the key |
+| `Forbidden` | `403` | Authenticated but not permitted | Use a key with the right scope |
+| `RateLimited` | `429` | Per-key rate limit exceeded | Raise the key's `rate_limit_rpm` if persistent — there is no `retry_after_ms` to key a backoff off; retry with your own |
+| `PayloadTooLarge` | `413` | Body size exceeds `server.request_body_limit` | Send smaller messages or raise the limit ([Reference → config.toml](config-toml.md)) |
+| `InternalError` | `500` | Unhandled exception, detector failure, or generic server-side error | Check the gateway logs; correlate with the `X-Request-Id` response header |
+| `ServiceUnavailable` | `503` | Dependency (Postgres / Redis / model) unreachable, or the gateway is shutting down | Retry with backoff; check dependency health |
 
-> The `ApiError` enum in `semd-api` distinguishes more cases internally (e.g. `BadRequest` vs `NotFound`, `Timeout` vs `Unavailable`), but the wire layer maps them all into the seven codes above via [`ApiError::error_code()`](https://github.com/unicitynetwork/semanticd/blob/main/crates/semd-api/src/error.rs).
+> The `ApiError` enum distinguishes more cases internally (e.g. `BadRequest` vs `NotFound`, `Timeout` vs `Unavailable`), but the wire layer maps them all into the eight codes above via [`ApiError::error_code()`](https://github.com/unicitynetwork/semanticd/blob/main/crates/semd-api/src/error.rs).
+
+## `/manage/*` error codes
+
+Ten values, from `ManageError::error_code()` — a genuinely richer catalogue
+than `/api/v1/*`'s, with a real `409 conflict` and a `502 bad_gateway` that
+`/api/v1/*` has no equivalent for:
+
+| `error` | HTTP status | What it means |
+|---|---|---|
+| `bad_request` | `400` | Malformed body or invalid JSON |
+| `unauthorized` | `401` | No or invalid credential |
+| `forbidden` | `403` | Authenticated but lacking the required capability |
+| `not_found` | `404` | Resource doesn't exist |
+| `conflict` | `409` | Resource already exists (duplicate name), or can't be deleted while in use |
+| `validation_error` | `400` | Field-level validation failure |
+| `database_error` | `500` | Underlying Postgres error |
+| `internal_error` | `500` | Generic server-side error |
+| `bad_gateway` | `502` | Upstream dependency unreachable or answered unusably |
+| `service_unavailable` | `503` | Process not in a shape that can serve safely |
 
 ## Rate-limit response in detail
 
-When a key exceeds `rate_limit_rpm`:
+When a key exceeds `rate_limit_rpm` on `/api/v1/guard`:
 
 ```http
 HTTP/1.1 429 Too Many Requests
 Content-Type: application/json
 
 {
-  "error": {
-    "code": "RATE_LIMITED",
-    "message": "Rate limit exceeded for this API key.",
-    "request_id": "019ed01f-…",
-    "retry_after_ms": 17000
-  }
+  "code": "RateLimited",
+  "message": "Rate limit exceeded"
 }
 ```
 
-`retry_after_ms` is in milliseconds. The standard HTTP `Retry-After` header may or may not be set; trust `error.retry_after_ms` first. SDK clients honour it automatically.
+There is no `retry_after_ms` field and no `Retry-After` header —
+`ApiError::RateLimited` carries no extra data, and the rate-limiter
+middleware's own header-setting code runs only on the allowed path (the
+limit-exceeded path returns before reaching it). Retry with your own
+backoff. `/manage/*` has no rate limiting and no equivalent response.
 
 ## WebSocket close codes
 
-The streaming connection uses standard WebSocket close codes — these are not part of the JSON error envelope.
-
-| Code | Meaning | Action |
-|---|---|---|
-| `1000` | Normal closure | None |
-| `1009` | Message too big — server buffered too far ahead of a slow consumer | Reconnect; consume faster, or poll `/manage/audit` instead |
-| `1011` | Server error on the broadcast side | Check gateway logs; reconnect |
-
-Other 1xxx codes follow the WebSocket spec. The gateway does **not** issue custom 4xxx close codes today; auth failures happen during the HTTP upgrade and return 401 there.
+`/manage/ws/events` (`crates/semd-manage/src/ws.rs`) is the one streaming
+connection in the API; it uses standard WebSocket close codes, not the JSON
+error envelope above. The server never sends a custom close code today: a
+client disconnect or a `Close` frame from the client just ends the loop,
+and a lagging client (falling behind the broadcast channel) is logged and
+skipped, not disconnected. Expect ordinary `1000`/`1005` closures; do not
+build logic around a specific non-default close code.
 
 ## What is **not** in this catalogue
 
-- No `not_ready`, `pipeline_timeout`, `redis_unreachable`, `postgres_unreachable` distinct error codes — all of those collapse to `INTERNAL_ERROR` or `SERVICE_UNAVAILABLE` on the wire, with the distinguishing detail in `error.message`.
-- No `key_disabled` / `key_revoked` distinction — both surface as `UNAUTHORIZED` with a more specific message.
-- No 404 `*_not_found` codes — the gateway returns 404 but the wire `error.code` is `INVALID_REQUEST`. Read `error.message` to know which resource.
-- No 409 `policy_in_use` / `duplicate_name` codes — current behaviour collapses to `INVALID_REQUEST`.
+For `/api/v1/*`:
+- No `not_ready`, `pipeline_timeout`, `redis_unreachable`, `postgres_unreachable` distinct codes — all collapse to `InternalError` or `ServiceUnavailable`, with the distinguishing detail in `message`.
+- No `key_disabled` / `key_revoked` distinction — both surface as `Unauthorized` with a more specific message.
+- No 404 `*_not_found` code — the gateway returns HTTP 404 but the wire `code` is `InvalidRequest`. Read `message` to know which resource.
+- No 409 conflict code — `ApiError` has no `Conflict` variant.
 
-These distinctions may be added (existing codes won't be renamed). Current behaviour matches the table above.
+For `/manage/*`, a 409 `conflict` code genuinely exists (see above) — the
+split into two tables above is exactly because the two subsystems disagree
+on this and other cases.
+
+These distinctions may be added (existing codes won't be renamed). Current
+behaviour matches the tables above.
 
 ## Stability promise
 
-The seven `code` values are stable. New codes may be added; existing codes will not be renamed or repurposed. Message strings are **not** stable — parse on `code`, surface `message` for humans.
+The `/api/v1/*` `code` values (eight) and the `/manage/*` `error` values
+(ten) are each stable within their own catalogue. New codes may be added to
+either; existing codes will not be renamed or repurposed. Message strings
+are **not** stable — parse on `code` / `error`, surface `message` for
+humans.
 
 ## Related
 

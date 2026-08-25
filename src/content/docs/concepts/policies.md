@@ -5,9 +5,38 @@ description: How detector outputs become verdicts.
 
 A **policy** is the named set of behaviour that turns detector outputs into a verdict. The primary use of a policy is to determine which detectors will be run, and in which order, when a new request is examined. A second objective is to score the detection signals into an unambiguous classifier verdict (e.g., block, modify, allow ...).
 
-- The request API call sets the policy ID to be used on an individual request (otherwise a default policy is assigned).
-- Every API key is bound to exactly one policy.
-- Multiple keys can share a policy.
+## How a request's policy is chosen
+
+Which policy governs a request depends on whether the key that called is
+bound to an **agent class** (see [Fleet › Agents](../dashboard/fleet-agents.md)):
+
+```
+key IS in a class   (class-led)
+  1. the class's policy   -> the only source
+     request also sends policy_id -> refused (see below)
+
+key is NOT in a class   (caller-led)
+  1. request's policy_id  -> the only source; unknown id = 400
+     request omits policy_id -> refused (see below)
+```
+
+"Refused" here is gated on the tenant's `class_policy_enforcement` rollout
+dial, and only bites once that dial reaches `block` — see [Guard endpoint →
+Agent classes and `policy_id`](../api/guard-endpoint.md#agent-classes-and-policy_id)
+for the two exact 400s and what happens before `block`.
+
+`api_keys.policy_id` — a key's own assigned tier — is **deprecated**, not
+dropped: the column still exists and still holds values, but a classed key no
+longer consults it. It remains the fallback for a caller-led key that omits
+`policy_id` and still has a tier set (below `block`), and it is what an
+unclassed key falls back to before the tenant default.
+
+A class can only bind a policy that belongs to its own tenant — the foreign
+key is `(tenant_id, policy_id)`, not a bare policy id, so a class can never
+point at another tenant's policy even under row-level security.
+
+- Every API key is bound to at most one policy directly (`api_keys.policy_id`); a classed key's effective policy comes from its class instead.
+- Multiple keys can share a policy, whether directly or through a shared class.
 
 ## What a policy contains
 
@@ -86,10 +115,12 @@ Common edits:
 | Treat detector errors more conservatively | Change `fail_mode` from `allow` to `flag` or `block` |
 | Add a new detector to the policy | Add an entry under `[policies.detectors]` |
 
-The dashboard [Guardrails › Policies](../dashboard/guardrails-policies.md) is the recommended edit surface. The same data is reachable via `PUT /manage/policies/{name}` for scripted changes.
+The dashboard [Guardrails › Policies](../dashboard/guardrails-policies.md) is the recommended edit surface. The same data is reachable via `PATCH /manage/policies/{id}` for scripted changes (`{id}` is the policy's UUID, not its `policy_id` name).
 
 ## Related
 
 - [The guard pipeline](the-guard-pipeline.md) — where the policy is consulted during a request.
 - [Detectors](detectors.md) — what `[policies.detectors]` refers to.
 - [How-to → Tune a policy threshold](../guides/tune-a-policy-threshold.md) — the iterative tuning loop.
+- [Fleet › Agents](../dashboard/fleet-agents.md) — agent classes, the unit of policy for classed keys.
+- [Guard endpoint → Agent classes and `policy_id`](../api/guard-endpoint.md#agent-classes-and-policy_id) — the wire-level rule and the rollout dial.

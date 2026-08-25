@@ -78,6 +78,8 @@ cargo build --release --bin semanticd
 
 In `--dev-mode` admin auth uses a permissive default (`admin / admin` for the seeded user — override at first boot via `SEMANTICD_ADMIN_USERNAME` / `SEMANTICD_ADMIN_PASSWORD` / `SEMANTICD_ADMIN_EMAIL`).
 
+A guard call with no valid key in `--dev-mode` runs as the anonymous identity, which is caller-led — see [Guard endpoint → Agent classes and `policy_id`](../api/guard-endpoint.md#agent-classes-and-policy_id) for what that requires once enforcement reaches `block`.
+
 ## CLI subcommands
 
 ```

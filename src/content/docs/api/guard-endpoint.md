@@ -44,6 +44,81 @@ Request shape from [`crates/semd-core/src/types/request.rs::GuardRequest`](https
 
 Messages are evaluated together as a single context. Request-side rules run on `user` messages; if the most recent message is `assistant`, response-side rules run too.
 
+## Agent classes and `policy_id`
+
+Whether a key may send `policy_id` at all now depends on whether the key is
+bound to an **agent class** (see [Fleet › Agents](../dashboard/fleet-agents.md)):
+
+- **Class-led** — the key is bound to a class. The class's policy is the only
+  source; sending `policy_id` on the request is refused, not silently
+  ignored.
+- **Caller-led** — the key carries no class. The request's `policy_id` is the
+  only source; omitting it is refused once enforcement reaches `block` (see
+  below).
+
+**Dev mode is caller-led too.** `--dev-mode` (`require_auth = false`) does
+not exempt a call from this rule. A request with no valid key resolves to
+the built-in anonymous identity, which carries no agent class — so it is
+caller-led like any other unclassed key. Once the tenant's dial reaches
+`block`, an anonymous dev-mode call still needs `policy_id`; a demo built
+against `--dev-mode` that dropped it because "auth is off" 400s the moment
+the dial moves. See [Installation](../getting-started/installation.md) for
+`--dev-mode` itself.
+
+**Endpoint credentials are exempt from the caller-led refusal.** An enrolled
+endpoint's own credential (used by the poll and telemetry routes, on a
+`Product::Plane` deployment) is not an `api_keys` row, so it can never be
+bound to an agent class. It is a different kind of credential, not a
+misconfigured key — omitting `policy_id` on an endpoint credential is served
+at every enforcement setting, including `block`.
+
+Both refusals are **400**, with the exact message copied here from
+[`crates/semd-api/src/error.rs`](https://github.com/unicitynetwork/semanticd/blob/main/crates/semd-api/src/error.rs):
+
+| Situation | Message |
+|---|---|
+| Class-led key, request carries `policy_id` | `This key's policy is set by its agent class '<class>'; remove policy_id from the request` |
+| Caller-led key, request has no `policy_id` | `This key has no agent class, so the request must name a policy_id` |
+
+### The rollout dial
+
+Both refusals are gated on the tenant's `class_policy_enforcement` setting —
+`off`, `flag`, or `block` — read with `GET /manage/registry/enforcement` and
+changed with `PUT /manage/registry/enforcement` (see [Management endpoints →
+Agent classes and enforcement](management-endpoints.md#agent-classes-and-enforcement)).
+Every tenant ships at `off`.
+
+| Setting | Class-led key sends `policy_id` anyway | Caller-led key sends none |
+|---|---|---|
+| `off` | Served on the caller's `policy_id`, no refusal | Served on the key's own tier / tenant default, no refusal |
+| `flag` | Same as `off`, plus the violation is logged | Same as `off`, plus the violation is logged |
+| `block` | **400** — `PolicyIsClassLed` | **400** — `PolicyRequired` |
+
+"Logged" at `flag` means a `tracing::warn!` line — nothing durable is written
+and nothing is queryable from the dashboard or the audit API. There is no
+audit row for a `flag`-mode violation today.
+
+**Binding a key to a class is not gated by this dial.** The moment a key is
+bound to a class, its calls resolve through the class's policy — that part of
+the change is unconditional and takes effect immediately, at `off` included
+(`crates/semd-api/tests/class_policy_modes.rs:125-139` pins this: a classed
+key omitting `policy_id` resolves through the class even at `off`). So "off
+changes nothing" holds only for a tenant that has never registered a class or
+bound a key to one — the moment it registers a class, that class's keys
+reroute regardless of the dial.
+
+For a classless fleet, `off` and `flag` genuinely change nothing: the
+caller-led refusal only fires at `block`, and every key is caller-led when
+there are no classes. `block` is different. The caller-led refusal
+(`crates/semd-api/src/handlers/guard.rs:627`) fires for **any** unclassed key
+that omits `policy_id`, whether or not the tenant ever registered a class —
+so flipping a fully classless tenant straight to `block` can break every
+caller that was omitting `policy_id`. "No behaviour change at all, at any
+dial setting" is true only up through `flag`; plan the move to `block`
+accordingly.
+
+See "Rolling out enforcement" below for the operational sequence.
+
 ## Response — Allow
 
 ```http
@@ -129,29 +204,91 @@ See [Verdict shapes reference](../reference/verdict-shapes.md) for the full fiel
 
 ## Errors
 
-Every error follows the envelope at [Reference → API error codes](../reference/api-error-codes.md):
+The wire shape is a flat object — there is no `error` wrapper — and `code`
+is the Rust enum variant's `Debug` name (PascalCase), not
+`SCREAMING_SNAKE_CASE`
+(`crates/semd-api/src/error.rs`'s `ErrorResponse::new` builds `code` via
+`format!("{code:?}")`, not `ErrorCode`'s own `Serialize` impl). Neither
+`request_id` nor `details` is populated by the endpoints below — the request
+id is echoed on the `X-Request-Id` response header instead, not in the body:
 
 ```json
 {
-  "error": {
-    "code": "INVALID_REQUEST",
-    "message": "messages array is empty",
-    "request_id": "019ed01f-…"
-  }
+  "code": "InvalidRequest",
+  "message": "messages array is empty"
 }
 ```
 
-| HTTP status | `error.code` | Typical cause for this endpoint |
+| HTTP status | `code` | Typical cause for this endpoint |
 |---|---|---|
-| `400` | `INVALID_REQUEST` | Missing / malformed `messages`, unknown role, invalid `policy_id`, oversize message count |
-| `401` | `UNAUTHORIZED` | Missing or invalid API key |
-| `403` | `FORBIDDEN` | Key is suspended / revoked |
-| `413` | `PAYLOAD_TOO_LARGE` | Body exceeds `server.request_body_limit` |
-| `429` | `RATE_LIMITED` | Key exceeded `rate_limit_rpm`; `error.retry_after_ms` set |
-| `500` | `INTERNAL_ERROR` | Detector exception or generic gateway failure |
-| `503` | `SERVICE_UNAVAILABLE` | Dependency unreachable, pipeline timeout, or shutdown in progress |
+| `400` | `InvalidRequest` | Missing / malformed `messages`, unknown role, invalid `policy_id`, oversize message count, or a `policy_id` that conflicts with the key's agent-class mode (see above) |
+| `401` | `Unauthorized` | Missing or invalid API key |
+| `401` | `ApiKeyExpired` | API key's `expires_at` has passed |
+| `403` | `Forbidden` | Key is suspended / revoked |
+| `413` | `PayloadTooLarge` | Body exceeds `server.request_body_limit` |
+| `429` | `RateLimited` | Key exceeded `rate_limit_rpm` |
+| `500` | `InternalError` | Detector exception or generic gateway failure |
+| `503` | `ServiceUnavailable` | Dependency unreachable, pipeline timeout, or shutdown in progress |
 
-The seven-code catalogue is fixed; finer-grained cause is in `error.message`. See [Reference → API error codes](../reference/api-error-codes.md) for fail-open behaviour (`action` / `degraded` top-level fields).
+See [Reference → API error codes](../reference/api-error-codes.md) for the
+full `/api/v1/*` catalogue and fail-open behaviour (`action` / `degraded`
+top-level fields on a 200 that still failed internally). `/manage/*`
+endpoints use a **different** error type with a different wire shape — see
+that same reference page for the split.
+
+## Rolling out enforcement
+
+The dial exists so turning this on cannot break an existing caller. The
+sequence:
+
+1. **Register classes and bind keys, at any dial setting.** This step alone
+   has no dial dependency — a class's policy governs its keys' calls the
+   moment you bind them, whether the tenant is at `off`, `flag`, or `block`.
+2. **Move the dial to `flag`.** `PUT /manage/registry/enforcement`
+   `{"enforcement": "flag"}`. Nothing is rejected yet — every violation that
+   would 400 at `block` is served exactly as it is at `off`, and only logged.
+3. **Check the key inventory** on [Fleet › Agents](../dashboard/fleet-agents.md),
+   shown while the dial reads `flag`. It tells you how many keys are
+   caller-led at the guard — keys with no class, plus keys bound to a class
+   nobody registered, which the guard also treats as caller-led.
+
+   **This is inventory, not readiness, and there is no number that means
+   "safe to switch".** Whether a call breaks at `block` depends on the
+   request, not the key:
+
+   | credential | request | at `block` |
+   |---|---|---|
+   | caller-led | sends `policy_id` | succeeds |
+   | caller-led | omits `policy_id` | fails |
+   | class-led | sends `policy_id` | fails |
+   | class-led | omits `policy_id` | succeeds |
+
+   The dashboard cannot see what a caller sends, so it can neither promise a
+   caller-led key will break nor promise a class-led one will not. Endpoint
+   credentials are exempt from the caller-led refusal and are not counted.
+4. **Confirm from your own logs before moving to `block`.** At `flag` every
+   would-be refusal is logged by the guard process that served it. Those log
+   lines — not the dashboard count — are the evidence that no live caller
+   still breaks the rules. There is no queryable record behind them yet, so
+   this step is a log search rather than a screen you can read off.
+
+Moving the dial takes effect immediately. `PUT /manage/registry/enforcement`
+writes the new setting to Postgres and pushes it into the running guard in
+the same request — no restart or redeploy needed.
+
+**On more than one gateway replica, this reaches only the replica that
+served the request.** The push is an in-process update to that replica's
+policy store; there is no broadcast to the others. The write to Postgres is
+durable, but a sibling replica keeps its old enforcement value even across
+an unrelated policy reload — reload deliberately carries the existing
+enforcement forward rather than re-reading it — until that replica is
+restarted. This cuts both ways: moving the dial to `block` behind a load
+balancer leaves some replicas still open at the old setting until every one
+of them restarts, and moving it back to `off` mid-incident is exactly as
+incomplete — a replica that already had `block` keeps enforcing it until it,
+too, restarts. Single-replica deployments are unaffected. This is a
+deliberate deferral, not a bug: cross-replica propagation is unimplemented
+today.
 
 ## Related
 

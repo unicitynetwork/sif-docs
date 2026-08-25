@@ -69,6 +69,41 @@ Rules don't live at the top level of `/manage/*` — they belong to a **ruleset*
 
 Policy shape matches [Concepts → Policies](../concepts/policies.md).
 
+## Agent classes and enforcement
+
+The registry of **agent classes** — the unit of policy for classed keys (see
+[Concepts → Policies](../concepts/policies.md) and [Fleet ›
+Agents](../dashboard/fleet-agents.md)). Reads need `registry:read` (viewer+);
+writes need `registry:write` (operator+).
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/manage/registry/classes` | List this tenant's agent classes |
+| `POST` | `/manage/registry/classes` | Register a new class. `slug`, `display_name`, `policy_id` required |
+| `GET` | `/manage/registry/classes/{slug}` | Get one class |
+| `PATCH` | `/manage/registry/classes/{slug}` | Change display name, description, owner, tags, or the **policy** — the edit this registry exists for |
+| `POST` | `/manage/registry/classes/{slug}/retire` | Retire the class |
+| `GET` | `/manage/registry/enforcement` | Read the tenant's class-policy enforcement dial: `off`, `flag`, or `block` |
+| `PUT` | `/manage/registry/enforcement` | Move the dial. Body: `{"enforcement": "off" \| "flag" \| "block"}` |
+| `GET` | `/manage/registry/observed` | Agent classes seen in the audit log, registered or not, with call counts |
+
+There is **no** `DELETE` on `/manage/registry/classes/{slug}`. A class
+retires instead of being deleted, so `audit_log.agent_class` stays joinable
+against a class that is no longer active; its policy binding is untouched by
+retirement, so keys already bound to it keep resolving through that policy.
+
+```bash
+curl -X PATCH https://<manage-host>/manage/registry/classes/eng%2Fcode-reviewer \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"policy_id": "strict"}'
+```
+
+See [Guard endpoint → Agent classes and `policy_id`](guard-endpoint.md#agent-classes-and-policy_id)
+for what the dial actually gates, and [Rolling out
+enforcement](guard-endpoint.md#rolling-out-enforcement) for the safe sequence
+— including a restart caveat that matters.
+
 ## Detectors and models
 
 | Method | Path | Purpose |
@@ -91,8 +126,11 @@ There is **no** reload / unload endpoint on the live router.
 | `POST` | `/manage/api-keys/{id}/revoke` | Permanently invalidate (audit history retained) |
 | `POST` | `/manage/api-keys/{id}/suspend` | Suspend — reject future requests, reversible |
 | `POST` | `/manage/api-keys/{id}/reactivate` | Re-enable a suspended key |
+| `POST` | `/manage/api-keys/{id}/rotate` | Issue a new secret for the same key record; the old secret stops working |
+| `PUT` | `/manage/api-keys/{id}/agent-class` | Bind the key to an agent class: `{"agent_class_id": "eng/code-reviewer"}` |
+| `DELETE` | `/manage/api-keys/{id}/agent-class` | Clear the binding — the key becomes caller-led |
 
-> There is **no** `/rotate` or `/disable` endpoint on the live router. To rotate, mint a new key with the same `name` + `policy_id`, deploy it, then `/revoke` the old one. "Suspend" is what other systems would call "disable" — reversible, audit-preserving.
+> There is **no** `/disable` endpoint on the live router. "Suspend" is what other systems would call "disable" — reversible, audit-preserving. `/rotate` does exist (`crates/semd-manage/src/router.rs`) — see [Fleet › Keys](../dashboard/fleet-keys.md) for the dashboard flow.
 
 ```bash
 curl -X POST https://sif.unicity.network/manage/api-keys \
@@ -142,7 +180,7 @@ A complete user-management surface (used by the dashboard for operator accounts)
 | `GET` | `/manage/audit/by-request/{request_id}` | Single audit row by `request_id` |
 | `GET` | `/manage/audit/stats` | Aggregate audit stats |
 | `GET` | `/manage/audit/stats/hourly` | Hourly bucket counts |
-| `POST` | `/manage/audit/cleanup` | Purge old audit rows per retention policy |
+| `DELETE` | `/manage/audit/cleanup` | Purge old audit rows per retention policy |
 
 Query parameters for `/manage/audit`:
 
@@ -185,4 +223,4 @@ Audit row fields: `id`, `request_id`, `event_type`, `action`, `message_count`, `
 ## Related
 
 - [Concepts → Rules](../concepts/rules.md), [Policies](../concepts/policies.md), [API keys](../concepts/api-keys-and-tenancy.md), [Threats and verdicts](../concepts/threats-and-verdicts.md) — the data model behind these endpoints.
-- [Fleet › Keys](../dashboard/fleet-keys.md), [Guardrails › Policies](../dashboard/guardrails-policies.md), [Guardrails › Rules](../dashboard/guardrails-rules.md) — the dashboard UI on top of these endpoints.
+- [Fleet › Agents](../dashboard/fleet-agents.md), [Fleet › Keys](../dashboard/fleet-keys.md), [Guardrails › Policies](../dashboard/guardrails-policies.md), [Guardrails › Rules](../dashboard/guardrails-rules.md) — the dashboard UI on top of these endpoints.

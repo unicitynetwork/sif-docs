@@ -6,8 +6,9 @@ sidebar:
 ---
 
 Fleet › Keys (`/fleet/keys`) is the credential surface. Every request to
-`/api/v1/guard` must carry an API key, and every key is bound to exactly one
-policy — so a key is both an identity and a choice of guardrails.
+`/api/v1/guard` must carry an API key, and every key resolves to exactly one
+policy — directly, or through an [agent class](fleet-agents.md) — so a key is
+both an identity and a choice of guardrails.
 
 This screen was previously part of a single "Settings" page. Access control moved
 to [Access › Users](access-users.md); health and version moved to
@@ -19,10 +20,21 @@ to [Access › Users](access-users.md); health and version moved to
 |---|---|
 | Name | What you called it |
 | Prefix | The first characters of the key, enough to identify it in a log |
-| Tier | The policy tier the key is bound to |
+| Tier | The key's request rate limit (`rate_limit_rpm`), e.g. `500/min`, or `unlimited` |
 | Status | `active`, `suspended`, `expired` or `revoked` |
 | Expires | When it stops working, if it is time-limited |
 | Last used | When the guard last saw it |
+
+**Tier** shows `rate_limit_rpm`, not the policy tier — despite the header
+name, this column has nothing to do with policy resolution, and it stays
+fully in force for a classed key exactly as for a caller-led one. The
+deprecated `api_keys.policy_id` doesn't appear in the table at all; it
+appears in the **Edit** dialog's Policy select. For a key bound to an [agent
+class](fleet-agents.md), that select still looks live but is no longer
+consulted — the class's policy governs instead. `policy_id` is deprecated,
+not dropped: the field and the value both stay, they just stop being read.
+See [Concepts → API keys and
+tenancy](../concepts/api-keys-and-tenancy.md#key--policy-binding).
 
 The full key is shown **once**, when it is created or rotated. It is not
 recoverable afterwards — the server stores a hash. Copy it then or rotate for a
@@ -62,8 +74,33 @@ The header checkbox selects the rows currently shown, honouring any active filte
 
 ## Binding a key to an agent class
 
-A key can carry an *agent class*, which is how the audit trail knows what kind of
-software made a call. Bind one on [Fleet › Agents](fleet-agents.md).
+A key can carry an *agent class* — the unit of policy (see [Fleet ›
+Agents](fleet-agents.md)). Bind or clear one from a key's **Edit…** action on
+this screen; the field sits in the same dialog as name, tier, and expiry.
+
+The **Agent class** field is a dropdown over the registry, not free text —
+a typo'd slug used to resolve to no class at all, silently falling the key
+back to caller-led while the screen showed the typo as though it had
+worked. **No class (caller-led)** is its own explicit option, so clearing a
+binding is still one choice away. Only classes with an *active* lifecycle
+are offered; a retired class drops out of the list (see [Fleet › Agents →
+Retire, not delete](fleet-agents.md#retire-not-delete)).
+
+A key can already carry a slug the dropdown would not otherwise list — one
+retired since, or typed by hand before this dropdown existed and never
+registered at all. Rather than silently resetting the field to "no class",
+that slug shows as its own selected option labelled **`<slug>` (not
+registered)**, with a hint explaining that picking anything else replaces
+it. Hiding the mismatch would erase the one signal that the key is
+misconfigured.
+
+A key with **no** class is **caller-led**: it must name a `policy_id` on
+every call to [`POST /api/v1/guard`](../api/guard-endpoint.md) once the
+tenant's enforcement setting reaches `block` — see [Guard endpoint → Agent
+classes and `policy_id`](../api/guard-endpoint.md#agent-classes-and-policy_id).
+A key bound to a class is **class-led**: the class's policy governs every
+call the key makes, and the class — not this screen — is where you change
+it.
 
 ## Handing a key to the tester
 
