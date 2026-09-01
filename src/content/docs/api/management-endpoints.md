@@ -171,21 +171,21 @@ writes need `registry:write` (operator+).
 |---|---|---|
 | `GET` | `/manage/registry/classes` | List this tenant's agent classes |
 | `POST` | `/manage/registry/classes` | Register a new class. `slug` and `display_name` required; `policy_ids` optional |
-| `GET` | `/manage/registry/classes/{slug}` | Get one class |
-| `PATCH` | `/manage/registry/classes/{slug}` | Change display name, description, owner, tags, or the attached **`policy_ids`** — the edit this registry exists for |
-| `POST` | `/manage/registry/classes/{slug}/retire` | Retire the class |
+| `GET` | `/manage/registry/classes/{*slug}` | Get one class; the catch-all preserves path-like slugs such as `eng/code-reviewer` |
+| `PATCH` | `/manage/registry/classes/{*slug}` | Change display name, description, owner, tags, or the attached **`policy_ids`** — the edit this registry exists for |
+| `POST` | `/manage/registry/retire/{*slug}` | Retire the class |
 | `GET` | `/manage/registry/enforcement` | Read the tenant's class-policy enforcement dial: `off`, `flag`, or `block` |
 | `PUT` | `/manage/registry/enforcement` | Move the dial. Body: `{"enforcement": "off" \| "flag" \| "block"}` |
 | `GET` | `/manage/registry/observed` | Agent classes seen in the audit log, registered or not, with call counts |
 
-There is **no** `DELETE` on `/manage/registry/classes/{slug}`. A class
+There is **no** `DELETE` on `/manage/registry/classes/{*slug}`. A class
 retires instead of being deleted, so `audit_log.agent_class` stays joinable
 against a class that is no longer active; the policies it attaches are
 untouched by retirement, so keys already bound to it keep resolving through
 them.
 
 ```bash
-curl -X PATCH https://<manage-host>/manage/registry/classes/eng%2Fcode-reviewer \
+curl -X PATCH https://<manage-host>/manage/registry/classes/eng/code-reviewer \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
   -d '{"policy_ids": ["strict"]}'

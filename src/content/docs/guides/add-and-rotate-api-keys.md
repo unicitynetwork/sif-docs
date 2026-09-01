@@ -76,7 +76,7 @@ from it — a class-led key stays class-led, resolving the same policies, and a
 caller-led key stays caller-led. Rotating is not a way to change which policy
 applies; to do that, change the key's classes
 (`PUT`/`DELETE /manage/api-keys/{id}/agent-class`) or the policies the class
-attaches (`PATCH /manage/registry/classes/{slug}`).
+attaches (`PATCH /manage/registry/classes/{*slug}`).
 
 ### Watching traffic move over before cutting the old key off
 
