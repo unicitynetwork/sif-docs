@@ -6,7 +6,8 @@ sidebar:
 ---
 
 Guardrails › Policies (`/guardrails/policies`) is where detector outputs become
-verdicts. Every API key is bound to exactly one policy, so a policy is the answer to
+verdicts. Every call resolves its policies from the caller's agent class, or from
+the `policy_id` it names, so a policy is the answer to
 "what happens when this caller trips a detector?"
 
 The screen is a list on the left and an editor panel on the right. The panel always

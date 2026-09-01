@@ -6,9 +6,10 @@ sidebar:
 ---
 
 Fleet › Keys (`/fleet/keys`) is the credential surface. Every request to
-`/api/v1/guard` must carry an API key, and every key resolves to exactly one
-policy — directly, or through an [agent class](fleet-agents.md) — so a key is
-both an identity and a choice of guardrails.
+`/api/v1/guard` must carry an API key, and every key resolves to a set of
+policies — through the [agent class](fleet-agents.md) it is in, or from the
+`policy_id` it names on each call — so a key is both an identity and a choice
+of guardrails.
 
 This screen was previously part of a single "Settings" page. Access control moved
 to [Access › Users](access-users.md); health and version moved to
@@ -27,13 +28,12 @@ to [Access › Users](access-users.md); health and version moved to
 
 **Tier** shows `rate_limit_rpm`, not the policy tier — despite the header
 name, this column has nothing to do with policy resolution, and it stays
-fully in force for a classed key exactly as for a caller-led one. The
-deprecated `api_keys.policy_id` doesn't appear in the table at all; it
-appears in the **Edit** dialog's Policy select. For a key bound to an [agent
-class](fleet-agents.md), that select still looks live but is no longer
-consulted — the class's policy governs instead. `policy_id` is deprecated,
-not dropped: the field and the value both stay, they just stop being read.
-See [Concepts → API keys and
+fully in force for a classed key exactly as for a caller-led one. There is
+no per-key policy to show at all: `api_keys.policy_id` was dropped by
+migration `120260828231927`, and neither the table nor the **Edit** dialog
+offers a Policy select any more. **Edit** picks the key's [agent
+class](fleet-agents.md) instead, and the policies that class attaches govern
+every call the key makes. See [Concepts → API keys and
 tenancy](../concepts/api-keys-and-tenancy.md#key--policy-binding).
 
 The full key is shown **once**, when it is created or rotated. It is not
@@ -98,9 +98,9 @@ A key with **no** class is **caller-led**: it must name a `policy_id` on
 every call to [`POST /api/v1/guard`](../api/guard-endpoint.md) once the
 tenant's enforcement setting reaches `block` — see [Guard endpoint → Agent
 classes and `policy_id`](../api/guard-endpoint.md#agent-classes-and-policy_id).
-A key bound to a class is **class-led**: the class's policy governs every
+A key bound to a class is **class-led**: the class's policies govern every
 call the key makes, and the class — not this screen — is where you change
-it.
+them.
 
 ## Handing a key to the tester
 

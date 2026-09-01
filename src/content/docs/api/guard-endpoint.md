@@ -37,7 +37,7 @@ Request shape from [`crates/semd-core/src/types/request.rs::GuardRequest`](https
 | Field | Type | Required | Notes |
 |---|---|---|---|
 | `messages` | array | yes | One or more messages. `role` is `"system"`, `"user"`, or `"assistant"`. `content` is a string. |
-| `policy_id` | string | no | Top-level field — **not** `config.policy`. Overrides the key's bound policy. Most callers omit. |
+| `policy_id` | string | no | Top-level field — **not** `config.policy`. Whether it is required or refused depends on the key — see below. |
 | `config.return_detections` | bool | no | Include the `detections` array in the response. Default `false` in code; SDK defaults to `true`. |
 | `config.threshold` | float \| null | no | Per-call risk-score override. `null` ⇒ use the policy threshold. |
 | `config.categories` | array of string | no | If non-empty, only run detectors emitting these categories. Empty ⇒ run all enabled. |
@@ -49,9 +49,9 @@ Messages are evaluated together as a single context. Request-side rules run on `
 Whether a key may send `policy_id` at all now depends on whether the key is
 bound to an **agent class** (see [Fleet › Agents](../dashboard/fleet-agents.md)):
 
-- **Class-led** — the key is bound to a class. The class's policy is the only
-  source; sending `policy_id` on the request is refused, not silently
-  ignored.
+- **Class-led** — the key is bound to a class. The policies its classes
+  attach are the only source — any number of them, possibly none; sending
+  `policy_id` on the request is refused, not silently ignored.
 - **Caller-led** — the key carries no class. The request's `policy_id` is the
   only source; omitting it is refused once enforcement reaches `block` (see
   below).
@@ -86,20 +86,32 @@ Both refusals are gated on the tenant's `class_policy_enforcement` setting —
 `off`, `flag`, or `block` — read with `GET /manage/registry/enforcement` and
 changed with `PUT /manage/registry/enforcement` (see [Management endpoints →
 Agent classes and enforcement](management-endpoints.md#agent-classes-and-enforcement)).
-Every tenant ships at `off`.
+Every tenant ships at `block`. Migration 036
+(`120260828165959_enforcement_default.sql`) moved the column default there and
+moved every tenant still sitting at `off` with it; a tenant an operator had
+deliberately set to `flag` was left alone, and an unrecognised stored value
+reads as `block` too (`semd-api/src/policy_store.rs:346-372`).
 
 | Setting | Class-led key sends `policy_id` anyway | Caller-led key sends none |
 |---|---|---|
-| `off` | Served on the caller's `policy_id`, no refusal | Served on the key's own tier / tenant default, no refusal |
+| `off` | Served on the caller's `policy_id`, no refusal | Served on the tenant default, no refusal |
 | `flag` | Same as `off`, plus the violation is logged | Same as `off`, plus the violation is logged |
 | `block` | **400** — `PolicyIsClassLed` | **400** — `PolicyRequired` |
+
+**One escape hatch, and only for the caller-led refusal.** With
+`tenants.caller_led_policy_fallback` on, a caller-led key that names no
+`policy_id` resolves through the tenant's default policy instead of being
+refused at `block` — the pre-036 behaviour, for a deployment with legacy
+callers it cannot change. It is `false` by default and does **not** relax the
+class-led refusal: there is no honest fallback for a caller contradicting its
+own class.
 
 "Logged" at `flag` means a `tracing::warn!` line — nothing durable is written
 and nothing is queryable from the dashboard or the audit API. There is no
 audit row for a `flag`-mode violation today.
 
 **Binding a key to a class is not gated by this dial.** The moment a key is
-bound to a class, its calls resolve through the class's policy — that part of
+bound to a class, its calls resolve through the class's policies — that part of
 the change is unconditional and takes effect immediately, at `off` included
 (`crates/semd-api/tests/class_policy_modes.rs:125-139` pins this: a classed
 key omitting `policy_id` resolves through the class even at `off`). So "off
@@ -240,11 +252,13 @@ that same reference page for the split.
 
 ## Rolling out enforcement
 
-The dial exists so turning this on cannot break an existing caller. The
-sequence:
+The dial exists so enforcement can be staged rather than flipped. Since
+migration 036 a tenant starts at `block`, so this is no longer the path a new
+deployment walks — it is the path back for one that rolled a tenant to `off`
+to keep legacy callers serving while it fixes them. The sequence:
 
 1. **Register classes and bind keys, at any dial setting.** This step alone
-   has no dial dependency — a class's policy governs its keys' calls the
+   has no dial dependency — a class's policies govern its keys' calls the
    moment you bind them, whether the tenant is at `off`, `flag`, or `block`.
 2. **Move the dial to `flag`.** `PUT /manage/registry/enforcement`
    `{"enforcement": "flag"}`. Nothing is rejected yet — every violation that

@@ -28,32 +28,33 @@ Both are equivalent. The Python SDK uses `X-API-Key`. Most curl examples use `Au
 
 ## Key → policy binding
 
-Every key is bound to a policy in one of two ways, depending on whether the
+Every key gets its policies in one of two ways, depending on whether the
 key carries an **agent class**:
 
 - **Class-led** — the key is bound to a class (`PUT /manage/api-keys/{id}/agent-class`,
   or the **Edit…** action on [Fleet › Keys](../dashboard/fleet-keys.md)). The
-  class's policy is the only source. The key's own `policy_id` — set at
-  creation or via `PATCH /manage/api-keys/{id}` — is **deprecated**: the
-  column still exists and still holds whatever value it had, but it is no
-  longer consulted for a classed key. Change the policy on the class instead
+  policies its classes attach are the only source — any number of them, and
+  possibly none, in which case nothing is checked. The key holds no
+  `policy_id` of its own: migration `120260828231927` dropped the column.
+  Change the policies on the class instead
   (see [Fleet › Agents](../dashboard/fleet-agents.md)); every key bound to
   the class follows in one write.
-- **Caller-led** — the key carries no class. Its own `policy_id` (or an
-  explicit `policy_id` on the request, which wins) is what applies, falling
-  back to the tenant default if neither is set.
+- **Caller-led** — the key carries no class. The `policy_id` on the request is
+  what applies, falling back to the tenant default only where the tenant's
+  enforcement setting still allows it.
 
 See [Concepts → Policies](policies.md#how-a-requests-policy-is-chosen) for
 the full resolution order and [Guard endpoint → Agent classes and
 `policy_id`](../api/guard-endpoint.md#agent-classes-and-policy_id) for the
-wire-level rule, including the rollout dial that phases this in without
-breaking existing callers.
+wire-level rule, including the rollout dial — which ships at `block` since
+migration 036, so the refusals are live unless a tenant moves it back.
 
-Multiple keys can share a policy, whether bound directly or through a shared
-class. This is the recommended pattern for multi-application deployments:
+Multiple keys can share a policy, whether through a shared class or by naming
+it on the request. This is the recommended pattern for multi-application
+deployments:
 
 - One policy per **risk tier** (e.g. `default`, `strict`, `permissive-internal`).
-- Many keys bound to each policy or class, one per calling application.
+- Many keys in each class, one per calling application.
 
 ## Rate limits
 
@@ -79,22 +80,46 @@ A limit of `0` means unlimited. Use unlimited only for keys whose calling applic
 Every audit row records the key prefix (`semd_a3f0…`, never the full secret) and the request metadata. This drives:
 
 - The "Last used" column on [Fleet › Keys](../dashboard/fleet-keys.md).
-- Per-key filtering on `GET /manage/audit?key_prefix=semd_live_a3f0`.
+- Per-key filtering on `GET /manage/audit?api_key_id=semd_live_a3f0` — the audit row's `api_key_id` *is* that prefix.
 - Anomaly detection (e.g. a key suddenly producing 100× its baseline volume).
 
 Suspended and revoked keys retain their audit history; rows are not purged when the key is revoked.
 
 ## Tenant separation
 
-For multi-tenant deployments (one gateway, many customer apps), the recommended pattern is:
+A tenant is a row in `tenants`, and every tenant-owned table carries a
+`tenant_id`. Key, policy, ruleset, rule, agent class, audit row, receipt and
+captured payload all belong to exactly one tenant.
 
-- One **policy** per tenant if their risk requirements differ.
-- One **API key** per (tenant, application).
-- Use the **name** field on the key to encode tenant ownership: `acme/support-bot`, `acme/agent-runner`, `globex/ingest`.
+### The boundary is in the database
 
-There is no enforced tenant boundary at the storage layer — audit data is global within the gateway instance. Tenant separation is operational, achieved via key naming and per-tenant queries.
+Postgres row-level security enforces it, not application code. Every
+tenant-owned table has `FORCE ROW LEVEL SECURITY` and a policy keyed on the
+`app.tenant_id` setting the gateway sets per connection.
 
-For stronger isolation, run separate gateway instances per tenant with separate Postgres databases. See [Deployment → Docker Compose](../deployment/docker-compose.md) for the multi-instance pattern.
+Three consequences worth knowing:
+
+- **A forgotten `WHERE tenant_id = …` returns nothing, not somebody else's
+  rows.** With no tenant set, every such table reads as empty and refuses
+  every write. That is the point: the failure mode of a missing filter is a
+  blank screen, not a leak.
+- **`FORCE` includes the table owner.** The application role cannot read past
+  its own tenant even though it owns the schema.
+- **Shipped content is the one exception, and it is deliberate.** Built-in
+  rulesets, rules and their revision snapshots carry `tenant_id IS NULL` and
+  are readable by every tenant — they are content we ship, not anyone's data.
+
+### What is still yours to get right
+
+- One **API key** per (tenant, application), so a compromised credential is
+  bounded.
+- Use the key's **name** to say what it is for: `support-bot`,
+  `agent-runner`. The tenant is a column now, so it does not belong in the
+  name.
+- Separate gateway instances with separate databases remain the strongest
+  isolation available, and are the right answer where a shared database is
+  unacceptable regardless of what enforces the boundary inside it. See
+  [Deployment → Docker Compose](../deployment/docker-compose.md).
 
 ## What this model does not provide
 

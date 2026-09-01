@@ -189,22 +189,44 @@ ruleset row at once and shown as one banner on
 [Guardrails › Rulesets](../dashboard/guardrails-rulesets.md) — worth checking after your
 first save.
 
-## Tuning a built-in rule instead
+## Tightening a built-in rule instead
 
-If a shipped rule is close but noisy, you do not have to clone the whole ruleset.
-A **rule override** adjusts `enabled`, `score` and `severity` while leaving
-the body to the file:
+If a shipped rule is close but not strict enough, you do not have to clone the
+whole ruleset. There is no per-rule override — a rule owns its own score and
+severity, and a different value means a different rule. Instead, put a rule
+carrying **the same `rule_id`** in a ruleset of your own:
 
 ```bash
-curl -X PUT https://sif.unicity.network/manage/rule-overrides/{ruleset_id}/{rule_id} \
+curl -X POST https://sif.unicity.network/manage/rulesets/{your_ruleset_id}/rules \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{ "score": 0.6 }'
+  -d '{
+        "rule_id": "pii-fin-002",
+        "name": "Card numbers, stricter here",
+        "category": "pii",
+        "severity": "critical",
+        "score": 0.95,
+        "match_spec": { "type": "regex", "patterns": ["\\b[0-9]{16}\\b"], "mode": "any" }
+      }'
 ```
 
-Note both ids here are the **string** ids (`pii-detection`, `pii-fin-002`),
-not row ids — deliberately, so the override survives the file being re-synced.
-Any field you leave out keeps whatever the file says.
+Then attach both rulesets to the policy — the shipped one **first** — with
+`PUT /manage/policies/{id}/rulesets`.
+
+The two occurrences flatten into one rule, and **the strictest value of each
+field wins**: `enabled` if either says so, the higher `score` and `severity`,
+the strictest `action`, the union of `applies_to`. The `match` block is *not*
+merged — it comes from the first ruleset in the policy's order that carries the
+id, which is why the shipped ruleset goes first and keeps supplying the pattern.
+That is the point: you get your score, and upstream keeps improving the regex
+under it.
+
+**Composition only ever tightens.** Nothing in another ruleset can lower a
+shipped rule's score or switch it off. If a pack is too coarse to take
+wholesale, the answer is to stop attaching it, not to soften it.
+
+`GET /manage/policies/{id}/flattened` shows the merged result, including which
+ruleset defined each rule and which ones tightened it.
 
 Clone the ruleset only when you need to change the matching logic itself.
 

@@ -49,12 +49,40 @@ Rules don't live at the top level of `/manage/*` — they belong to a **ruleset*
 | `GET` | `/manage/rulesets/{id}` | Get a ruleset |
 | `PATCH` | `/manage/rulesets/{id}` | Update ruleset metadata |
 | `DELETE` | `/manage/rulesets/{id}` | Delete a ruleset |
+| `GET` | `/manage/rulesets/{id}/policies` | The policies that attach this ruleset |
 | `GET` | `/manage/rulesets/{ruleset_id}/rules` | List rules in a ruleset |
 | `POST` | `/manage/rulesets/{ruleset_id}/rules` | Add a rule to a ruleset |
 | `GET` | `/manage/rules/{id}` | Get a rule directly by ID |
 | `PATCH` | `/manage/rules/{id}` | Update a rule |
 | `DELETE` | `/manage/rules/{id}` | Delete a rule |
 | `GET` | `/manage/rules/stats` | Aggregate rule statistics |
+
+### Which policies use a ruleset
+
+`GET /manage/rulesets/{id}/policies` answers "who depends on this?" — and it is
+the list you need when a `DELETE` is refused, because a ruleset a policy still
+attaches is never cascaded (see [Errors](#errors)). The delete's `409` message
+already names the policies; this endpoint is how you check *before* trying, or
+after a refusal you no longer have in front of you.
+
+It needs **`policy:read`**, not `rules:read` — what it discloses is policy
+identities, not rule content. A ruleset this tenant cannot see is a `404`,
+never an empty list: "used by nothing" and "not yours" are different answers.
+
+The response is a bare JSON array, ordered by `policy_id`, with one object per
+attaching policy:
+
+```json
+[
+  {"id": "9f4c1b02-6d3a-4e18-8c77-2b5a90ef1d44", "policy_id": "customer-support"},
+  {"id": "c1a77e63-0b92-4d51-9f28-6e30ab44c907", "policy_id": "strict"}
+]
+```
+
+`id` is the policy's UUID (what the other `/manage/policies/{id}` routes take);
+`policy_id` is its string id. An empty array means no policy attaches this
+ruleset, so a `DELETE` would succeed. Nothing else is returned — no policy name,
+description, or position.
 
 ## Policies
 
@@ -65,9 +93,72 @@ Rules don't live at the top level of `/manage/*` — they belong to a **ruleset*
 | `GET` | `/manage/policies/{id}` | Get one policy |
 | `PATCH` | `/manage/policies/{id}` | Update a policy |
 | `DELETE` | `/manage/policies/{id}` | Remove a policy |
+| `GET` | `/manage/policies/{id}/rulesets` | The rulesets this policy runs, in flatten order |
+| `PUT` | `/manage/policies/{id}/rulesets` | Replace that list, ordered |
+| `GET` | `/manage/policies/{id}/flattened` | The rules the policy actually runs, after merging |
 | `POST` | `/manage/policies/{id}/set-default` | Mark a policy as the default for unbound keys |
 
 Policy shape matches [Concepts → Policies](../concepts/policies.md).
+
+### Which rulesets a policy runs
+
+Reads need `policy:read`; the `PUT` needs `policy:write`. A policy this tenant
+cannot see is a 404, never an empty list — the two mean different things.
+
+`GET` returns one object per attached ruleset — `position`, `id`, `ruleset_id`,
+`version`, `description`, `enabled`, `is_builtin` — ordered by `position`
+ascending. Gaps in `position` are legal: detaching a ruleset leaves the
+survivors where they were.
+
+`PUT` takes the whole list, because the order *is* the payload:
+
+```json
+{ "ruleset_ids": ["<uuid>", "<uuid>"] }
+```
+
+First in the array flattens first. An empty array detaches everything, which is
+a legal state and a deliberate one. A ruleset named twice is refused (a ruleset
+holds one position), as is one this tenant cannot see — both checked before
+anything is written. The response is the same shape as `GET`.
+
+### What the policy actually checks
+
+`GET /manage/policies/{id}/flattened` merges every attached ruleset into the one
+rule list the guard runs, so it is the answer to "what does this policy check?".
+Summing the per-ruleset lists instead double-counts every rule id that appears in
+more than one.
+
+```json
+{
+  "attached_count": 42,
+  "flattened_count": 40,
+  "enabled_count": 38,
+  "rules": [
+    {
+      "rule_id": "pii-fin-002",
+      "score": 0.95,
+      "severity": "critical",
+      "action": null,
+      "enabled": true,
+      "defined_by": "pii-detection",
+      "tightened_by": ["acme-tighten"]
+    }
+  ]
+}
+```
+
+`attached_count` counts rule rows across every attached ruleset, repeats
+included; `flattened_count` counts distinct rules after the merge. The two
+differing is how you find an overlap. `enabled_count` is how many of those
+actually run — the guard drops the rest, but they stay in `rules` with
+`enabled: false`, because a rule that is attached and not firing is a different
+fact from one that is absent.
+
+`defined_by` names the ruleset the rule's pattern came from; `tightened_by`
+names, in attachment order, those whose copy of the id made it stricter, and is
+empty in the common case. `action` is `null` for every rule stored in the
+database — the `rules` table has no `action` column, so there is nothing for the
+merge to take a maximum of.
 
 ## Agent classes and enforcement
 
@@ -79,9 +170,9 @@ writes need `registry:write` (operator+).
 | Method | Path | Purpose |
 |---|---|---|
 | `GET` | `/manage/registry/classes` | List this tenant's agent classes |
-| `POST` | `/manage/registry/classes` | Register a new class. `slug`, `display_name`, `policy_id` required |
+| `POST` | `/manage/registry/classes` | Register a new class. `slug` and `display_name` required; `policy_ids` optional |
 | `GET` | `/manage/registry/classes/{slug}` | Get one class |
-| `PATCH` | `/manage/registry/classes/{slug}` | Change display name, description, owner, tags, or the **policy** — the edit this registry exists for |
+| `PATCH` | `/manage/registry/classes/{slug}` | Change display name, description, owner, tags, or the attached **`policy_ids`** — the edit this registry exists for |
 | `POST` | `/manage/registry/classes/{slug}/retire` | Retire the class |
 | `GET` | `/manage/registry/enforcement` | Read the tenant's class-policy enforcement dial: `off`, `flag`, or `block` |
 | `PUT` | `/manage/registry/enforcement` | Move the dial. Body: `{"enforcement": "off" \| "flag" \| "block"}` |
@@ -89,14 +180,15 @@ writes need `registry:write` (operator+).
 
 There is **no** `DELETE` on `/manage/registry/classes/{slug}`. A class
 retires instead of being deleted, so `audit_log.agent_class` stays joinable
-against a class that is no longer active; its policy binding is untouched by
-retirement, so keys already bound to it keep resolving through that policy.
+against a class that is no longer active; the policies it attaches are
+untouched by retirement, so keys already bound to it keep resolving through
+them.
 
 ```bash
 curl -X PATCH https://<manage-host>/manage/registry/classes/eng%2Fcode-reviewer \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
-  -d '{"policy_id": "strict"}'
+  -d '{"policy_ids": ["strict"]}'
 ```
 
 See [Guard endpoint → Agent classes and `policy_id`](guard-endpoint.md#agent-classes-and-policy_id)
@@ -121,7 +213,7 @@ There is **no** reload / unload endpoint on the live router.
 | `POST` | `/manage/api-keys` | Create a new key. The secret is returned **only** in this response |
 | `GET` | `/manage/api-keys/stats` | Aggregate key statistics |
 | `GET` | `/manage/api-keys/{id}` | Get one key's metadata |
-| `PATCH` | `/manage/api-keys/{id}` | Update name, policy binding, rate limit, expiry, etc. |
+| `PATCH` | `/manage/api-keys/{id}` | Update `name`, `rate_limit_rpm`, `metadata`, `expires_at`. **Not** a policy — a key holds none; see `/agent-class` below |
 | `DELETE` | `/manage/api-keys/{id}` | Delete the key row |
 | `POST` | `/manage/api-keys/{id}/revoke` | Permanently invalidate (audit history retained) |
 | `POST` | `/manage/api-keys/{id}/suspend` | Suspend — reject future requests, reversible |
@@ -153,7 +245,7 @@ Response (the only place the full secret appears):
 }
 ```
 
-The full secret is the `api_key` field; `key_prefix` is the abbreviated form shown in lists, audit rows, and the dashboard. Policy binding, rate limit, expiry, and status default to the policy/key tenancy defaults and can be set with a follow-up `PATCH /manage/api-keys/{id}`. Optional create fields: `tier`, `rate_limit_rpm`, `policy_id`, `app_id`, `metadata`, `expires_at`.
+The full secret is the `api_key` field; `key_prefix` is the abbreviated form shown in lists, audit rows, and the dashboard. Rate limit, expiry, and status default to the key tenancy defaults and can be set with a follow-up `PATCH /manage/api-keys/{id}`. A key holds no policy of its own — bind it to an agent class with `PUT /manage/api-keys/{id}/agent-class`. Optional create fields: `tier`, `rate_limit_rpm`, `metadata`, `expires_at`.
 
 ## Users
 
@@ -187,22 +279,38 @@ Query parameters for `/manage/audit`:
 | Parameter | Type | Notes |
 |---|---|---|
 | `action` | string | Filter by verdict action: `allow`, `block`, `flag`, `modify` |
-| `key_prefix` | string | Filter by API key (the prefix shown in the dashboard) |
-| `policy` | string | Filter by `policy_id` |
-| `category` | string | Filter to rows with at least one detection in this category |
-| `since` | ISO-8601 | Lower bound on timestamp |
-| `until` | ISO-8601 | Upper bound on timestamp |
-| `limit` | integer | 1–500. Default 50 |
+| `event_type` | string | Filter by event type, `snake_case` |
+| `policy_id` | string | Filter by policy |
+| `api_key_id` | string | Filter by API key |
+| `agent_class` | string | Filter by agent class |
+| `user_id` | string | Filter by user |
+| `session_id` | string | Filter by session |
+| `degraded_only` | boolean | Only rows where the response was served degraded. Default `false` |
+| `start_date` | ISO-8601 | Lower bound on timestamp |
+| `end_date` | ISO-8601 | Upper bound on timestamp |
+| `page` | integer | 1-indexed. Default 1 |
+| `page_size` | integer | Rows per page. Default 50 |
+
+**An unrecognised parameter is ignored, not rejected.** Misspell one — or reach
+for a filter this table does not list — and the call succeeds, returning rows
+that were never narrowed. On an audit log that reads as "there were no such
+events", so check the name against this table before trusting an empty result.
 
 Response:
 
 ```json
 {
-  "data": [ { /* audit row */ } ]
+  "data": [ { /* audit row */ } ],
+  "total": 128,
+  "page": 1,
+  "page_size": 50,
+  "has_more": true
 }
 ```
 
 Audit row fields: `id`, `request_id`, `event_type`, `action`, `message_count`, `total_chars`, `latency_ms`, `risk_score`, `policy_id`, `api_key_id` (the `key_prefix`), `app_id`, `user_id`, `session_id`, `detections`, `degraded`, `client_ip`, `user_agent`, `ruleset_version`, `timestamp`.
+
+`app_id` is historical: it was copied from the calling key's own `app_id`, an attribute removed in favour of agent classes. Rows written before the removal keep their value and still render it; rows written since carry `null`. There is no longer a filter for it — use `agent_class`.
 
 ## Notifications
 

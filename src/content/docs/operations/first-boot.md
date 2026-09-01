@@ -90,7 +90,7 @@ Response (from `LoginResponse` in source):
 curl -s -X POST http://<manage-host>:<manage-port>/manage/api-keys \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"name":"support-bot-prod","policy_id":"default"}'
+  -d '{"name":"support-bot-prod"}'
 ```
 
 Response:
@@ -107,7 +107,7 @@ Response:
 
 The full `api_key` is returned **once** — store it in your application's secret manager immediately. After this response, only `key_prefix` is retrievable.
 
-Optional create-time fields on the body: `rate_limit_rpm`, `tier`, `expires_at`, `app_id`, `metadata`. They can also be set after the fact with `PATCH /manage/api-keys/{id}`. See [Management endpoints → API keys](../api/management-endpoints.md#api-keys).
+Optional create-time fields on the body: `rate_limit_rpm`, `tier`, `expires_at`, `metadata`. They can also be set after the fact with `PATCH /manage/api-keys/{id}`. See [Management endpoints → API keys](../api/management-endpoints.md#api-keys).
 
 ## 5 · Rotate the admin password
 

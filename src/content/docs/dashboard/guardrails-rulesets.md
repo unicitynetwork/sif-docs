@@ -19,7 +19,7 @@ The two tabs split the work between them:
 |---|---|---|
 | Answers | "What is loaded, and is it healthy?" | "Which rule did that, and can I change it?" |
 | Row is | one ruleset | one rule, across every ruleset |
-| Owns | create, clone, edit, enable, disable, delete | enable, disable, override, edit a rule |
+| Owns | create, clone, edit, enable, disable, delete | enable, disable, edit, delete a rule |
 | Never | lists individual rules | acts on a ruleset |
 
 Neither tab is a prerequisite for the other. The rule count on a row opens the
@@ -52,7 +52,6 @@ compiler's message verbatim, which names the rule at fault.
 | Ruleset | The id, and its description |
 | Source | **Built-in** (a file we ship) or **Yours** (stored in the database) |
 | Rules | How many. A link to the Rules tab, filtered — unless it is nought |
-| Overrides | How many of its rules carry an override |
 | State | On or off. Off means nothing in it runs |
 | Health | In force, not in effect, empty, or off |
 
@@ -61,8 +60,8 @@ Ordered off first, then by name — what needs a human, first.
 ## Ruleset detail
 
 Selecting a ruleset opens it at `?id=<ruleset_id>`, which is a real URL you can
-link to or bookmark. It carries the source, version, state, health, rule count,
-override count and tags.
+link to or bookmark. It carries the source, version, state, health, rule count
+and tags.
 
 **A failed composition shows the same banner here as on the list.** One
 ruleset's detail is the wrong place to lay a tenant-wide fault, but the warning
@@ -75,8 +74,11 @@ it cannot be edited or deleted. The menu says so rather than hiding the verbs.
 
 Two ways to change what a built-in does:
 
-- **Override** a single rule — its severity or score. Stored against the names,
-  so a re-sync cannot wipe it. See [Rule detail](guardrails-rule-detail.md).
+- **Tighten** a rule by authoring one with the same id in a ruleset of your own
+  and attaching both to the policy. Flattening keeps the strictest value of each
+  field while the pattern still comes from the shipped ruleset, so upstream fixes
+  keep arriving. It cannot loosen anything. See
+  [Write a custom rule](../guides/write-a-custom-rule.md).
 - **Clone** the whole ruleset. You get an editable copy you own, and it lands
   in this tenant. Cloning a built-in — like switching one on or off — is a
   platform action: the row is shared by every tenant, so the server refuses it

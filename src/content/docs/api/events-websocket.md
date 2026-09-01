@@ -100,7 +100,7 @@ The server responds to a client `Ping` frame with a matching `Pong`. The 30-seco
 
 The broadcast channel buffer is 256 events per topic. If a consumer falls behind, the server logs `RecvError::Lagged(n)` for the number of skipped events and the consumer's stream continues from the new tip — **dropped events are not redelivered**.
 
-For lossless delivery, pair the WebSocket with periodic polls of `GET /manage/audit?since=<watermark>`.
+For lossless delivery, pair the WebSocket with periodic polls of `GET /manage/audit?start_date=<watermark>`.
 
 ## Close codes
 

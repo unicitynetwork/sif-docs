@@ -65,8 +65,8 @@ Each detector emits a score in `[0, 1]` and optional metadata (matched rule, spa
 ## Policy boundary
 
 - A **policy** is a named bundle: `block_threshold`, `flag_threshold`, `fail_mode` (what to do if a detector errors), aggregation mode, and which detector families are enabled.
-- An **API key** is bound to exactly one policy.
-- Multiple keys can share a policy. Changing a policy affects every key bound to it immediately — no restart.
+- An **API key** is not bound to a policy. It runs the policies of the agent class it is in; a key with no class names a policy on each request.
+- Multiple keys can share a policy. Changing a policy affects every key that resolves it immediately — no restart.
 
 That is the entire decision surface. The rest is configuration.
 

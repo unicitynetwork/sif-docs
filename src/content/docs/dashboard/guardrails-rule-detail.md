@@ -1,6 +1,6 @@
 ---
 title: Rule detail
-description: One rule — what it matches, what it would do, and how to override it.
+description: One rule — what it matches, what it would do, and how to test it.
 sidebar:
   order: 8
 ---
@@ -17,8 +17,13 @@ incident review.
 
 ## What it shows
 
-The rule's pattern, its category, and its effective severity and score — effective
-meaning after any override, because that is what the engine uses.
+Two panels. **What it matches** renders the rule's match spec through the same
+editor used to author one, read-only — the ruleset owns the content, so nothing
+here is editable, on a built-in or on your own. Below it, a line naming the
+detector the rule configures, linking through to it.
+
+The header carries the rule's name, its ruleset and version, its severity, the
+derived action, and whether it is `Off`.
 
 ## The derived action
 
@@ -29,22 +34,25 @@ of the policy that would run it, including any category-specific override.
 Where no rule-engine configuration applies, the action shows as `—` with a tooltip
 explaining why, rather than guessing.
 
-## Overriding
+## Changing it
 
-**Override severity** and **Override score** change what the engine uses without
-editing the ruleset. Save, and the new values are effective immediately.
-
-**Reset override** removes it, returning the rule to what the ruleset ships.
+Nothing on this screen changes the rule. There is no per-rule override — a rule
+owns its score and severity, and a different value means a different rule. To
+make a shipped rule stricter, author one with the same id in a ruleset of your
+own; see [Write a custom rule](../guides/write-a-custom-rule.md). Enabling,
+disabling, editing and deleting live on the row menu in
+[Guardrails › Rules](guardrails-rules.md).
 
 ## Testing it
 
-**Tester** hands the rule to [Guardrails › Tester](guardrails-tester.md) so you can
-put a prompt through it and see the verdict. The tester uses a guard API key held
-in `sessionStorage` for the tab.
+**Try it** puts a prompt through the live guard from this screen and says whether
+*this* rule fired, then what else caught it. It needs a guard API key — paste one
+on [Guardrails › Tester](guardrails-tester.md) and it is held in `sessionStorage`
+for the tab.
 
 ## Capabilities
 
-Reading needs `rules:read`; setting and resetting an override needs `rules:author`.
+Reading needs `rules:read`. The screen makes no writes.
 
 If the rules cannot be read, the screen says so and names the capability, rather
 than reporting that the rule may have been removed.

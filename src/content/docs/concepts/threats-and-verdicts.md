@@ -32,7 +32,8 @@ A row stored against the audit table contains (live shape as returned by `GET /m
 | `ruleset_version` | The rule revision in force when this call ran |
 | `degraded` | `true` when the pipeline partially failed and the response was fail-open |
 | `client_ip`, `user_agent` | Connection metadata |
-| `app_id`, `user_id`, `session_id` | Optional caller-supplied trace identifiers |
+| `user_id`, `session_id` | Optional caller-supplied trace identifiers |
+| `app_id` | Historical only. Copied from the calling key's `app_id` before agent classes replaced it; rows written since carry `null` |
 
 The full request body is **not** persisted by default — only `message_count`, `total_chars`, and (when configured) a short snippet. To capture full bodies for compliance, enable `audit_full_body = true` on the policy. See [Reference → config.toml](../reference/config-toml.md).
 
@@ -48,10 +49,10 @@ These redactions happen before the row is written. They cannot be disabled — t
 
 ## Where the data lives
 
-- **Postgres** — durable, queryable, indexed by `request_id`, `api_key_prefix`, `action`, `timestamp`.
+- **Postgres** — durable, queryable, indexed by `request_id`, `api_key_id`, `action`, `timestamp`.
 - **WebSocket** — ephemeral fan-out, no persistence. Each event mirrors the audit row that was just written.
 
-The two are kept consistent: the WebSocket event is published **after** the audit row commits. A subscriber that misses an event can re-query it via `GET /manage/audit/entries?request_id=…`.
+The two are kept consistent: the WebSocket event is published **after** the audit row commits. A subscriber that misses an event can re-query it via `GET /manage/audit/by-request/{request_id}` — `request_id` is a path segment there, not a filter on the list endpoint.
 
 ## Querying
 
@@ -59,19 +60,22 @@ Main entry points (the audit surface is documented in [HTTP API → Management e
 
 | Need | Use |
 |---|---|
-| Recent threats by action | `GET /manage/audit?action=block&limit=50` |
+| Recent threats by action | `GET /manage/audit?action=block&page_size=50` |
 | Single audit row by row UUID | `GET /manage/audit/{id}` |
 | Audit row by `request_id` | `GET /manage/audit/by-request/{request_id}` |
 | Hourly volume buckets | `GET /manage/audit/stats/hourly` |
-| All traffic for one key | `GET /manage/audit?key_prefix=semd_live_a3f0` |
+| All traffic for one key | `GET /manage/audit?api_key_id=semd_live_a3f0` |
 
-The `since` and `until` parameters accept ISO-8601 timestamps.
+The time range is `start_date` and `end_date`, both ISO-8601. Results are paged
+with `page` and `page_size` (default 50); the response carries `total` and
+`has_more`. An unrecognised parameter is ignored rather than rejected, so a
+misspelt filter returns rows that were never narrowed.
 
 ## Retention
 
 Default retention is **90 days** for full-detail entries and **365 days** for hourly aggregates. Both are configured per policy (`audit_retention_days`, `aggregate_retention_days`). Older entries are purged by a background job that runs hourly.
 
-For longer retention, mirror to your data warehouse via periodic `GET /manage/audit/entries?since=<watermark>` queries.
+For longer retention, mirror to your data warehouse via periodic `GET /manage/audit?start_date=<watermark>` queries.
 
 ## Related
 

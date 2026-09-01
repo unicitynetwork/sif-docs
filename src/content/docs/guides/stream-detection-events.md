@@ -88,7 +88,7 @@ asyncio.run(main())
 
 ## Operational notes
 
-- **Reconnection** — The server sends a `heartbeat` event on connect and every 30 seconds. If the connection drops, reconnect with exponential backoff. The stream does **not** replay missed events; for guaranteed delivery, pair with periodic polls of `GET /manage/audit?since=<watermark>`.
+- **Reconnection** — The server sends a `heartbeat` event on connect and every 30 seconds. If the connection drops, reconnect with exponential backoff. The stream does **not** replay missed events; for guaranteed delivery, pair with periodic polls of `GET /manage/audit?start_date=<watermark>`.
 - **Backpressure** — The broadcast channel buffer is 256 events. If your consumer falls behind, the server logs `RecvError::Lagged(n)` and you skip ahead — dropped events are not redelivered. Don't do heavy work in the receive loop; hand off to a queue.
 - **Multiple consumers** — Every connected consumer sees every event. There is no fan-out partitioning. If you need per-consumer guarantees, build them in your consumer layer.
 - **Volume** — At sustained high traffic (>500 rps) consider polling `/manage/audit` instead. The stream is designed for low-latency review and dashboards, not for bulk log shipping.

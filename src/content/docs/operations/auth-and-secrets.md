@@ -66,7 +66,7 @@ Practical mitigations:
 
 1. **Issue separate manage-scope keys** to each operator, named after the operator (`ops-alice`, `ops-bob`). Audit rows will then show who did what.
 2. **Restrict the dashboard's port** at the network layer to a bastion or VPN.
-3. **Use the audit log** to detect unexpected management activity — query `/manage/audit/entries` for activity outside expected hours or from unexpected source IPs.
+3. **Use the audit log** to detect unexpected management activity — query `/manage/audit` for activity outside expected hours or from unexpected source IPs.
 
 Role-based dashboard auth is on the roadmap. Track its arrival in the [Changelog](changelog.md).
 

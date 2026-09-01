@@ -79,7 +79,7 @@ wscat -c "ws://localhost:8081/ws/events" \
   -H "Authorization: Bearer semd_dashboard_key"
 ```
 
-If wscat fails to upgrade, the key is invalid or revoked. Check `/manage/keys` and the dashboard's configuration.
+If wscat fails to upgrade, the key is invalid or revoked. Check `/manage/api-keys` and the dashboard's configuration.
 
 In `--dev-mode` no auth is required, so the feed should always work — if it doesn't, the dashboard process is not reaching the gateway. Check Docker network connectivity and confirm port 8081 is reachable.
 
@@ -98,6 +98,60 @@ Typical causes:
 - File permissions (the gateway can't read the file)
 
 Fix the file. The watcher reloads automatically; no restart needed.
+
+## A rule is in the corpus but never fires
+
+> **A known, unfixed defect.** Screening is silently reduced: a match is found
+> and then discarded, and the response says nothing.
+
+**The symptom.** A rule exists, is enabled, is in a ruleset the policy attaches,
+and demonstrably matches the text — yet the guard returns `200` with the rule
+absent from `detections`. Nothing in the response says anything was dropped.
+The request was screened against less than the operator attached, and the only
+sign of it is at boot, hours earlier.
+
+**Why it happens.** The gateway holds two views of the same rules from two
+different sources, joined by rule id. The patterns the engine actually matches
+against are compiled from the rule **files**; the list of rule ids a policy is
+allowed to use is built from the **`rules` table**. Boot-time sync is what keeps
+them in step. When the sync leaves a file rule with no database row, the engine
+still matches it and the policy's selection then discards the match — a hit is
+found and thrown away, with no error and no field on the response.
+
+**The two triggers the boot sync itself can produce:**
+
+1. **A tenant ruleset squatting a shipped pack's id.** The sync refuses to write
+   pack content into a tenant-owned row, so it skips the whole pack. Every rule
+   in that pack is then in the corpus and in no policy's selection.
+2. **A single failed rule-row insert.** The pack's ruleset row exists and is
+   attached; it is missing exactly that one rule. No squat needed.
+
+**How to spot it.** The boot log names both, and is the only place either is
+reported:
+
+```bash
+# Trigger 1 — logged at ERROR, names the pack in `ruleset_id`:
+docker compose logs gateway | grep 'shadows this shipped pack id'
+
+# Trigger 2 — logged at WARN, names the rule in `rule_id`:
+docker compose logs gateway | grep 'Failed to sync rule to database'
+```
+
+If neither appears in the logs of the current process's startup, this is not
+your cause — check [Rule file fails to load](#rule-file-fails-to-load) instead.
+
+**Status: known and unfixed, by decision.** Every candidate fix changes
+behaviour — refusing to boot on a squat, making the drop loud at request time,
+or building selections from the composed corpus so the two sources cannot
+diverge — and none has been chosen. There is an executable repro pinned in the
+test suite (`crates/semanticd/tests/a_squatted_pack_id_silently_stops_screening.rs`),
+which asserts the broken behaviour deliberately so the defect stays findable.
+
+**What you can do now.** For trigger 1, rename or delete the custom ruleset
+whose `ruleset_id` collides with the shipped pack and restart; the pack then
+syncs and its rules enter selections. For trigger 2, fix whatever the `error`
+field on the `warn` names (usually a constraint violation on the rule row) and
+restart. In both cases the boot log going quiet is the confirmation.
 
 ## Postgres connection failures at startup
 
@@ -127,12 +181,14 @@ Fix: raise `max_connections` on Postgres, lower `DATABASE_MAX_CONNECTIONS` per g
 A single key is producing many `429`s. Triage:
 
 ```bash
-curl "http://localhost:8080/manage/audit/entries?key_prefix=semd_a3f0&since=1h" \
-  -H "Authorization: ..." \
-  | jq '.entries | length'
+# The management API is on port 8081, not 8080, and takes a JWT from
+# POST /manage/auth/login. `api_key_id` is the key's public prefix.
+curl "http://localhost:8081/manage/audit?api_key_id=semd_a3f0&start_date=2026-06-01T09:00:00Z" \
+  -H "Authorization: Bearer ${JWT}" \
+  | jq '.total'
 ```
 
-If the volume is legitimate, raise the key's `rate_limit_rpm`. If not, disable the key with `POST /manage/keys/{id}/disable` and investigate why a client is hammering the gateway.
+If the volume is legitimate, raise the key's `rate_limit_rpm`. If not, suspend the key with `POST /manage/api-keys/{id}/suspend` and investigate why a client is hammering the gateway.
 
 ## Block rate suddenly spikes
 
@@ -152,7 +208,7 @@ Roll back the most recent rule or policy change first. The block rate normalisin
 | Structured logs (production) | Your log aggregator (Loki, Cloudwatch, Datadog) |
 | Metrics | `/metrics` Prometheus endpoint |
 | Current state snapshot | `/api/status` |
-| Historical verdicts | `/manage/audit/entries` |
+| Historical verdicts | `/manage/audit` |
 
 ## Related
 

@@ -44,7 +44,7 @@ is not a black box; it leaves the same trail a production call does.
 ## Testing a specific rule
 
 [Rule detail](guardrails-rule-detail.md) can send you here with that rule in hand,
-which is the loop for tuning: change an override, test, read the verdict, adjust.
+which is the loop for tuning: change the rule, test, read the verdict, adjust.
 
 ## Capabilities
 

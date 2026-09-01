@@ -3,13 +3,15 @@ title: Rules
 description: Rule format, built-in vs custom, and the hot-reload mechanism.
 ---
 
-A **rule** is a named pattern that the rule engine evaluates against the
-request. The same format is used by built-in and operator-authored rules; the
-difference is only where each one is stored.
+A **rule** is a named thing to look for. The same format is used by built-in
+and operator-authored rules; the difference is only where each one is stored.
 
-Rules are read by exactly one detector — `rule_engine`. The other detectors
-carry their own content. See [How the pieces fit](how-the-pieces-fit.md) for
-the full relationship between detectors, rules, rulesets and policies.
+**A rule's `match.type` decides which detector runs it.** Most types go to
+`rule_engine`, but a `yara` rule goes to the YARA detector and an `ml_model`
+rule goes to the classifier it names. So a rule is not "rule-engine data" — it
+is the authored half of detection, whichever detector ends up doing the work.
+See [How the pieces fit](how-the-pieces-fit.md) for the full relationship
+between detectors, rules, rulesets and policies.
 
 ## File format — YAML
 
@@ -50,24 +52,32 @@ rules:
 | `match` | The matching logic (below) |
 | `score` | Confidence when it matches, 0 to 1 |
 
-`match.type` is one of five:
+`match.type` is one of seven, and it is also what routes the rule:
 
-| Type | Carries |
-|---|---|
-| `regex` | `patterns`, `mode`, `case_insensitive` |
-| `keywords` | `keywords`, `mode`, `case_insensitive` |
-| `composite` | nested `conditions` plus a `mode` |
-| `transform_then_match` | `transforms`, then a nested match |
-| `semantic_similarity` | an embedding comparison |
+| Type | Carries | Run by |
+|---|---|---|
+| `regex` | `patterns`, `mode`, `case_insensitive` | `rule_engine` |
+| `keywords` | `keywords`, `mode`, `case_insensitive` | `rule_engine` |
+| `composite` | nested `conditions` plus a `mode` | `rule_engine` |
+| `transform_then_match` | `transforms`, then a nested match | `rule_engine` |
+| `semantic_similarity` | an embedding comparison | `rule_engine` |
+| `ml_model` | `model` plus the `threshold` it must reach | the named classifier |
+| `yara` | a YARA source string | the YARA detector |
+
+`match` itself is optional. A second ruleset naming a rule id that is already
+defined may leave it out and inherit the pattern — see
+[Tightening, and cloning](#tightening-and-cloning). A rule with no `match` and
+no defining occurrence to inherit from is refused rather than guessed at.
 
 `action` and `applies_to` deliberately have no default. An unclassified rule
 is surfaced at author time and listed as `uncompiled`, rather than having an
 action guessed from its severity or score.
 
-:::note[YARA is a separate thing]
-YARA signatures live in `rules/yara/*.yar` and are run by the `yara_detector`,
-which is its own detector. They are not the rule format described here and are
-not authored through the dashboard.
+:::note[YARA is a match type, not a separate world]
+A `yara` rule is authored, stored, versioned and attached exactly like any
+other rule — it just runs in the YARA detector rather than the rule engine.
+The `rules/yara/*.yar` files shipped with the gateway are the older, separate
+route and are still loaded, but new signatures belong in a ruleset.
 :::
 
 ## Built-in vs. custom rules
@@ -75,24 +85,29 @@ not authored through the dashboard.
 | | Built-in | Custom |
 |---|---|---|
 | Stored in | `rules/*.yaml`, shipped with the gateway | The database |
-| Created by | Upgrading the gateway | `POST /manage/rulesets` and `/manage/rules`, or the dashboard |
+| Created by | Upgrading the gateway | `POST /manage/rulesets` then `/manage/rulesets/{ruleset_id}/rules`, or the dashboard |
 | Marked | `is_builtin: true` | `is_builtin: false` |
 | Editable in place | No — the file owns the body | Yes |
-| Tunable | Yes, via a rule override | Directly |
+| Tunable | Only by attaching a stricter ruleset | Directly |
 | Best for | Coverage of well-known attack patterns | Bespoke patterns specific to your workload |
 
 Both are compiled and evaluated identically. What differs is who owns the
 body.
 
-### Overrides, and cloning
+### Tightening, and cloning
 
 A built-in rule's body cannot be edited, because the file is the source of
-truth and a re-sync would discard the change. Instead there is a **rule
-override**, carrying `enabled`, `score` and `severity` — any of which may be
-null, in which case the file's value stands.
+truth and a re-sync would discard the change. Nor is there a per-rule override
+to set beside it: a rule owns its own sensitivity, score and severity, and two
+different values mean two different rules.
 
-Overrides are keyed on the *string* ids `(ruleset_id, rule_id)` rather than
-row ids, precisely so they survive a file re-sync.
+What you do instead is attach a second ruleset naming the same `rule_id` with a
+stricter value. Flattening merges the occurrences into one rule, taking the
+strictest value of each field, while the pattern still comes from the ruleset
+that defined it — so upstream improvements to the regex keep arriving.
+
+This only ever tightens. There is no way to lower a shipped rule's score or
+switch it off from another ruleset; if a pack is too coarse, stop attaching it.
 
 To change a built-in rule's matching logic, **clone the ruleset**. That copies
 its rules into an editable ruleset, which you then own.
@@ -125,6 +140,21 @@ Two behaviours are deliberate:
 
 In practice: save a rule, and it is live within a tick. No restart, no
 rebuild.
+
+**The rule store is not the only thing a rule write has to move.** A policy
+keeps its own flattened copy of the rules its attached rulesets name, and that
+copy — not the tenant's whole slice — is what a key screens against once its
+agent class has resolved a policy for it. A rule the copy does not name cannot
+fire, and a score it holds is used in place of a lower one saved since. So a
+rule write refreshes the rule store first and the policies' copies second.
+
+The node taking the write refreshes both before it answers, and the Redis
+message carries both to every other node. **The timer refreshes only the rule
+store.** With `redis.pubsub_enabled` off (it is on by default) and more than
+one node, a second node therefore picks a rule change up in its rule store but
+not in its policies' selections until it restarts — the same restriction
+policy publishes already have, since nothing but Redis propagates those
+between nodes either.
 
 ## Disabled rules
 

@@ -24,7 +24,7 @@ Built against `GET /manage/audit/stats/hourly`, refreshed every 30 seconds:
 | Verdict volume by hour, last 24h, stacked by action | `hourly[hour].by_action.{allow,block,flag,modify}` |
 | Block rate (block ÷ total), last 24h | computed from the same response |
 | Flag rate (flag ÷ total) | computed |
-| Top firing detectors, last 24h | `GET /manage/audit/entries?since=24h&aggregate=detector` |
+| Top firing detectors, last 24h | No server-side aggregate exists. Page `GET /manage/audit?start_date=<24h ago>` and count `detections[].category` yourself |
 
 Keep this dashboard narrow. The job is *catch-the-anomaly*, not deep analysis.
 
@@ -79,9 +79,9 @@ Numbers vary by workload. The point is to have *numbers*, with an explicit error
 | **SIEM** | All `block` and `modify` verdicts | Subscribe to `/ws/events?actions=block,modify` |
 | **APM (Datadog, New Relic, etc.)** | Latency and throughput from `/api/status` | Scrape per replica |
 | **Log aggregator** | Gateway stdout/stderr | Standard container log collection |
-| **Data warehouse** | Full audit log | Periodic `GET /manage/audit/entries?since=<watermark>` |
+| **Data warehouse** | Full audit log | Periodic `GET /manage/audit?start_date=<watermark>`, paged with `page`/`page_size` until `has_more` is `false` |
 
-Avoid scraping `/manage/audit/entries` more often than once per minute — it's a database query, not a metrics endpoint.
+Avoid scraping `/manage/audit` more often than once per minute — it's a database query, not a metrics endpoint.
 
 ## Related
 

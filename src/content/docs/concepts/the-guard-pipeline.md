@@ -11,7 +11,7 @@ A guard call runs through five stages: **resolve** → **detect** → **combine*
        ▼
   ┌─────────────────────────────────────────────┐
   │ 1. RESOLVE                                  │
-  │    Validate API key → look up bound policy. │
+  │    Validate API key → resolve its policies. │
   │    Reject early on 401 / 403 / 429.         │
   └─────────────────────────────────────────────┘
        │  policy + request
@@ -51,7 +51,7 @@ A guard call runs through five stages: **resolve** → **detect** → **combine*
 
 ## 1 · Resolve
 
-Validates the API key and looks up the bound policy. Failures here return before any detection runs:
+Validates the API key and resolves the policies that govern the call. Failures here return before any detection runs:
 
 | Code | Cause |
 |---|---|
@@ -104,7 +104,7 @@ A special case: if a detector returned a *modified* message list (PII redaction,
 
 The verdict is written to two places:
 
-- **Audit row** in Postgres — durable, queryable via `GET /manage/audit/entries`. Source of truth for analysis.
+- **Audit row** in Postgres — durable, queryable via `GET /manage/audit`. Source of truth for analysis.
 - **WebSocket event** on `/ws/events` — ephemeral, fan-out to all connected subscribers. Drives the dashboard live feed.
 
 The WebSocket emit happens *after* the audit row commits. A consumer that missed an event can fetch it via the audit endpoint.

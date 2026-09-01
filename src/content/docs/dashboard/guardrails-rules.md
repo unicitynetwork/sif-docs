@@ -19,7 +19,7 @@ enabling, deleting — is [Guardrails › Rulesets](guardrails-rulesets.md).
 |---|---|
 | Rules in force | Rules that can actually fire |
 | Turned off | The rest of the loaded rules |
-| Customised | Rules carrying an override |
+| Customised | Rules in rulesets you authored, rather than built-in ones |
 
 **"In force" means the rule can fire, which needs two things**: the rule itself
 enabled, *and* the ruleset it lives in enabled. The engine drops a disabled ruleset
@@ -32,7 +32,7 @@ both run, and detections are counted twice.
 ## The list
 
 Ordered so that what can fire comes first, then by score — the caption says "off
-rules last, then by score". Filter chips narrow to on, off, overridden or built-in.
+rules last, then by score". Filter chips narrow to all, in force, off or built-in.
 The chips and the counters agree about what "on" means.
 
 ## Narrowing to one ruleset
@@ -41,7 +41,7 @@ The **Ruleset** menu on the left of the filter bar narrows the table to a single
 ruleset. It reads scope first, then state.
 
 It is a menu rather than a chip per ruleset because the state chips are a fixed
-set of five and rulesets are not — six today, thirty on a busy tenant.
+set of four and rulesets are not — six today, thirty on a busy tenant.
 
 Picking one writes `?ruleset=<id>` to the URL, which is the same address the
 Rulesets tab links to when you click a rule count. **One piece of state, two
@@ -50,16 +50,17 @@ doors** — you can start on either tab.
 While the filter is on, the **Ruleset** column disappears: every row would repeat
 the one word the bar above already says. Clear the filter and it comes back.
 
-## Overrides
+## Retuning a built-in
 
-A built-in ruleset is owned by its file and cannot be edited in place. What you can do
-is **override** a rule: change its severity or score without touching the ruleset.
+A built-in ruleset is owned by its file and cannot be edited in place. There is no
+per-rule override to set beside it either: a built-in rule is as shipped, or it is
+switched off, or it is not attached. There is no "customised in place" state, which
+is why a ruleset reads only ever as **Built-in** or **Custom**.
 
-The override is what the engine uses. The rule's own values stay as shipped, so an
-upgrade to the ruleset does not silently discard your tuning — and you can always see
-what the original said.
-
-Open a rule to set one. See [Rule detail](guardrails-rule-detail.md).
+To make a shipped rule stricter, author a rule with the same id in a ruleset of your
+own and attach both — flattening keeps the strictest of each field. To change what
+the rule matches, clone the ruleset. See
+[Write a custom rule](../guides/write-a-custom-rule.md).
 
 ## The row menu
 
@@ -95,8 +96,9 @@ either, so you cannot land on a form that will refuse you at the end.
 
 ## Capabilities
 
-Reading needs `rules:read`; overrides and ruleset toggles need `rules:write`;
-authoring rules and rulesets needs `rules:author`.
+Reading needs `rules:read`. Enabling or disabling a rule in one of your own
+rulesets, and deleting one, need `rules:write`; doing the same to a built-in rule,
+and authoring rules and rulesets, need `rules:author`.
 
 See also: [Guardrails › Rulesets](guardrails-rulesets.md),
 [Rules](../concepts/rules.md),

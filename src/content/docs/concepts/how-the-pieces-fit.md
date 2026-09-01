@@ -7,8 +7,8 @@ Four words do most of the work in SIF, and they are easy to confuse because
 three of them sound like the same kind of thing. They are not.
 
 > A **policy** chooses which **detectors** run. One of those detectors — the
-> rule engine — runs the **rules** in the loaded **rulesets**. Everything else
-> follows from that sentence.
+> rule engine — runs the **rules** in the **rulesets** that policy attaches.
+> Everything else follows from that sentence.
 
 This page is the long version, written against the source rather than from
 memory. Every claim names the file it came from.
@@ -17,8 +17,8 @@ memory. Every claim names the file it came from.
 
 A **detector** is a compiled program. A **rule** is data that one particular
 detector reads. A **ruleset** is a file or database row holding rules.
-A **policy** is configuration that decides which detectors run, in what
-order, and what their output is allowed to do.
+A **policy** is configuration that decides which rulesets are in play, which
+detectors run, in what order, and what their output is allowed to do.
 
 They are three layers, not three siblings — which is worth holding onto,
 because the dashboard lists them side by side as though they were peers.
@@ -82,9 +82,10 @@ rebuilding. Nothing reads config, YAML or the database for them.
 
 ## Rule — the data
 
-A rule is the only part of detection you can author. It is **not** YARA — that
-is a separate detector with its own files. The real format is YAML
-(`rules/pii-detection.yaml`):
+A rule is the only part of detection you can author. Its `match.type` decides
+which detector runs it — most types go to `rule_engine`, a `yara` rule to the
+YARA detector, an `ml_model` rule to the classifier it names. The format is
+YAML (`rules/pii-detection.yaml`):
 
 ```yaml
 rules:
@@ -138,16 +139,17 @@ A ruleset is a named, versioned group of rules. Rulesets come from two places an
 are merged on every reload:
 
 - **Files** — `rules/*.yaml`, shipped with the gateway. `is_builtin: true`.
-- **Database** — created through `POST /manage/rulesets` and
-  `/manage/rules`. This is where anything you author lands.
+- **Database** — created through `POST /manage/rulesets`, then
+  `/manage/rulesets/{ruleset_id}/rules`. This is where anything you author lands.
 
-A built-in ruleset cannot be edited in place, because the file owns it. Instead
-there is `RuleOverride`, keyed on the *string* ids `(ruleset_id, rule_id)` so
-it survives a file re-sync, and carrying nullable `enabled`, `score` and
-`severity`. Anything null falls through to what the file says.
+A built-in ruleset cannot be edited in place, because the file owns it. To change
+a built-in rule's body you clone the ruleset — which copies its rules into an
+editable one.
 
-To change a built-in rule's body you clone the ruleset — which copies its rules
-into an editable one.
+To tune a shipped rule *without* forking the pack, keep the built-in attached and
+add a ruleset of your own carrying a rule with the same id and a stricter score
+or severity. The strictest value wins, and the pattern still comes from the
+shipped pack, so you keep receiving upstream improvements to it.
 
 ## Policy — the configuration
 
@@ -168,14 +170,23 @@ A policy owns no rules and no detectors. It holds
 
 Two consequences worth stating plainly:
 
-**A policy never names a ruleset.** There is no ruleset field on `Policy`. Rulesets
-load globally; a policy tunes the *rule engine as a whole*. You cannot say
-"policy X uses rules A and B" — only "policy X runs the rule engine at these
-thresholds".
+**A policy names the rulesets it uses.** Not as a field on `Policy` — the link
+is the `policy_rulesets` table
+(`semd-db/src/migrations/120260828165613_policy_rulesets.sql`), an ordered list
+of any number of rulesets per policy. Their rules are **flattened into one
+effective list before anything runs** (`semd-rules/src/flatten.rs`), so a
+ruleset is a folder for authoring and reuse, not a runtime unit: a rule in two
+attached rulesets appears once and runs once. Where one id appears twice the
+strictest value of each field wins — `enabled` `true`, the higher `score` and
+`severity`, the stronger `action`, the union of `applies_to`, the *lower* ML
+threshold. So attaching a ruleset can only ever tighten a policy, never loosen
+it.
 
-**`category_overrides` is the closest thing to per-group tuning.** Because
+**`category_overrides` tunes by rule category, not by ruleset.** Because
 every rule has a `category`, a policy can hold different thresholds for
 different groups of rules inside the one engine, without any new detector.
+The ruleset a rule came from survives the flatten only as provenance on the
+verdict; it is not something a threshold can be hung on.
 
 ## The two paths a rule can take
 
@@ -264,9 +275,10 @@ with fewer fields that took a different route into the binary — and the
 system already has a first-class notion of built-in rulesets (`is_builtin`).
 
 Expressing those two as built-in rulesets would give them versioning, per-rule
-overrides, hot reload and a console presence for free. The one thing they
-would lose is their own seat at the policy table: today `pii_regex` can hold
-its own weight and stage, and as rules they would inherit the rule engine's.
+tightening through composition, hot reload and a console presence for free.
+The one thing they would lose is their own seat at the policy table: today
+`pii_regex` can hold its own weight and stage, and as rules they would inherit
+the rule engine's.
 
 ### The management API does not expose a rule's action
 
@@ -314,8 +326,17 @@ constant. Write a rule instead.
 action applies, degraded by the policy's mode. At the centre, no — it emits a
 score and the policy's thresholds decide.
 
-**Which detectors run rules?** Exactly one: `rule_engine`. The others carry
-their own content.
+**Which detectors run rules?** Three kinds. `rule_engine` runs the pattern
+types (regex, keywords, composite, transforms, semantic similarity); the YARA
+detector runs `yara` rules; and each `ml_model` rule goes to the classifier it
+names. `regex_detector`, `keyword` and `dlp_scanner` carry their own content
+instead — nothing you author reaches them.
+
+**What decides which detectors run at all?** The rulesets the policy attaches.
+A policy that attaches nothing runs nothing, and a policy whose rules never
+name a model never loads one. `stages` then say in what ORDER the eligible
+detectors run and where the cascade may stop early — they do not widen the
+set.
 
 ## Related
 

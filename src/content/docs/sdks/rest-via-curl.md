@@ -98,27 +98,42 @@ ws.onclose = (e) => {
 
 Browsers cannot set custom headers on a WebSocket upgrade; use the `api_key` query parameter. See [Authentication](../api/authentication.md).
 
-## Listing audit entries
+## Listing audit rows
+
+The audit log is on the management API, which runs on its own port (default
+`SEMANTICD_PORT + 1`) and takes a JWT, not an API key. Get one from
+`POST /manage/auth/login`:
 
 ```bash
-curl -sS "https://gateway.example.com/manage/audit/entries?action=block&page_size=50" \
-  -H "Authorization: Bearer semd_admin_key" \
-  | jq '.entries[] | {ts: .timestamp, action, score: .risk_score, det: .detections[0].category}'
+JWT=$(curl -sS -X POST https://manage.example.com/manage/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"<your_password>"}' \
+  | jq -r .token)
+
+curl -sS "https://manage.example.com/manage/audit?action=block&page_size=50" \
+  -H "Authorization: Bearer ${JWT}" \
+  | jq '.data[] | {ts: .timestamp, action, score: .risk_score, det: .detections[0].category}'
 ```
 
-## Cursor pagination
+The filters are listed in [Management endpoints → Audit](../api/management-endpoints.md#audit).
+An unrecognised parameter is ignored rather than rejected, so a misspelt filter
+returns rows that were never narrowed — check the name against that table before
+trusting the result.
 
-The audit list returns an opaque `next_cursor`:
+## Paging through the log
+
+There is no cursor. The audit list is paged by `page` (1-indexed) and `page_size`
+(default 50), and every response carries `total` and `has_more`:
 
 ```bash
-cursor=""
+page=1
 while : ; do
   resp=$(curl -sS \
-    "https://gateway.example.com/manage/audit/entries?since=2026-06-01&page_size=500&cursor=${cursor}" \
-    -H "Authorization: Bearer semd_admin_key")
-  echo "$resp" | jq -c '.entries[]'
-  cursor=$(echo "$resp" | jq -r '.next_cursor // empty')
-  [ -z "$cursor" ] && break
+    "https://manage.example.com/manage/audit?start_date=2026-06-01T00:00:00Z&page_size=500&page=${page}" \
+    -H "Authorization: Bearer ${JWT}")
+  echo "$resp" | jq -c '.data[]'
+  [ "$(echo "$resp" | jq -r .has_more)" = "true" ] || break
+  page=$((page + 1))
 done
 ```
 
