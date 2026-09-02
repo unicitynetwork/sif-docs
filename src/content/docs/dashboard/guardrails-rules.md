@@ -97,8 +97,10 @@ either, so you cannot land on a form that will refuse you at the end.
 ## Capabilities
 
 Reading needs `rules:read`. Enabling or disabling a rule in one of your own
-rulesets, and deleting one, need `rules:write`; doing the same to a built-in rule,
-and authoring rules and rulesets, need `rules:author`.
+rulesets, and deleting one, need `rules:write`; authoring rules and rulesets
+needs `rules:author`, which operators and admins both hold. Toggling a built-in
+rule needs the platform role (`tenant:manage`), because the row belongs to every
+tenant at once.
 
 See also: [Guardrails › Rulesets](guardrails-rulesets.md),
 [Rules](../concepts/rules.md),

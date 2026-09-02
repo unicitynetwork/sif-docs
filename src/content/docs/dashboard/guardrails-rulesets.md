@@ -109,8 +109,8 @@ exactly.
 ## Capabilities
 
 Reading needs `rules:read`. Enabling, disabling and deleting need `rules:write`.
-Creating, cloning and editing need `rules:author`, which is granted to admins
-only. A built-in is the exception on both sides of that split: its toggle and
+Creating, cloning and editing need `rules:author`, which is granted to operators
+and admins. A built-in is the exception on both sides of that split: its toggle and
 its clone need the platform role (`tenant:manage`), because the row belongs to
 every tenant at once.
 
