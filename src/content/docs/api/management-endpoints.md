@@ -317,6 +317,8 @@ Response:
 
 Audit row fields: `id`, `request_id`, `event_type`, `action`, `message_count`, `total_chars`, `latency_ms`, `risk_score`, `policy_id`, `api_key_id` (the `key_prefix`), `app_id`, `user_id`, `session_id`, `detections`, `degraded`, `client_ip`, `user_agent`, `ruleset_version`, `timestamp`.
 
+`session_id` holds the guarded call's `context.session` on guard rows, and the console session (the access token's `sid`) on management rows — so filtering by it returns everything one login did.
+
 `app_id` is historical: it was copied from the calling key's own `app_id`, an attribute removed in favour of agent classes. Rows written before the removal keep their value and still render it; rows written since carry `null`. There is no longer a filter for it — use `agent_class`.
 
 ## Notifications
