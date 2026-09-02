@@ -288,7 +288,7 @@ Query parameters for `/manage/audit`:
 | `action` | string | Filter by verdict action: `allow`, `block`, `flag`, `modify` |
 | `event_type` | string | Filter by event type, `snake_case` |
 | `policy_id` | string | Filter by policy |
-| `api_key_id` | string | Filter by API key |
+| `api_key_id` | string | Filter by API key. Matched exactly against the stored `key_prefix` (e.g. `semd_live_417ba256`), never the full key — sending the 42-char secret matches nothing, and puts a live credential in access logs |
 | `agent_class` | string | Filter by agent class |
 | `user_id` | string | Filter by user |
 | `session_id` | string | Filter by session |
