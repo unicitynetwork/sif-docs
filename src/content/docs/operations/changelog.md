@@ -11,6 +11,54 @@ Each release entry documents what changed, with attention to anything an operato
 
 Items in flight that have not yet shipped.
 
+**Changed — a policy naming one detector in two stages is now refused.**
+Read this before upgrading: plans that published yesterday can fail today.
+
+`Policy::validate` rejects an execution plan whose `stages` name the same
+detector more than once. Because it sits in `validate`, every authoring path is
+closed at once: explicit publish, create and update under
+`policies.auto_publish` (default `true`), and the YAML loader — a policy file
+carrying a duplicate now **fails policy load at startup** rather than loading
+and misbehaving.
+
+Why it is worth breaking: a duplicated detector ran twice on the same
+preprocessed input for the same answer, and the combiner's weighted average
+counted that answer in both the weighted sum and the total weight — so the
+detector carried twice the say of every other one in the plan. It is not
+fail-safe in either direction. A duplicated *permissive* detector dragged the
+score down exactly as hard as a strict one pushed it up, so a policy could be
+quietly more permissive than its author believed.
+
+*What to do:* remove the repeat. The rules and thresholds you want are already
+expressed by the single occurrence; a second one adds latency and a weighting
+nobody chose. The console's policy screen marks the offending detector and
+names the stages holding it before you save.
+
+*What is deliberately not blocked:* a **mode-only** change. `update_policy`
+validates only when the patch touches content, so turning a policy to
+`monitor` or `off` still works on a policy carrying a duplicate. Turning
+enforcement down must never be blocked by a defect in the thing being turned
+down.
+
+**Added — `shadowed_by` on `GET /manage/policies/{id}/flattened`.**
+Each flattened rule now names the rulesets whose copy of its id carried a
+*different pattern* — one the merge discarded. Previously that left no trace:
+`tightened_by` records only occurrences that moved a scalar, so a ruleset
+differing purely in its regex looked identical to one that agreed, while the
+pattern its author wrote screened nothing. Empty in the common case, and
+absent entirely from older servers, which is not the same as empty. Reachable
+only from the database — the YAML loader already refuses two occurrences of an
+id with different `match` blocks.
+
+**Added — `publishable_detector_ids` on `GET /manage/detectors`.**
+The full set of detector ids a policy stage may name: the live pipeline's
+registry plus the binary's canonical set, which is what the publish gate
+actually checks against. The existing `detectors` array is a narrower thing —
+the non-ML pattern detectors *this process* registered — and a client reading
+it as the authority concludes that `prompt_injection_ml` is unknown, which is
+wrong on every shipped policy. Use `publishable_detector_ids` to validate;
+`detectors` remains what it always was.
+
 **Changed — agent-class policy enforcement is on by default (migration 036).**
 Read this before upgrading: it changes what the guard API refuses.
 

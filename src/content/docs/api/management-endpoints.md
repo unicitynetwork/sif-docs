@@ -171,7 +171,8 @@ more than one.
       "action": null,
       "enabled": true,
       "defined_by": "pii-detection",
-      "tightened_by": ["acme-tighten"]
+      "tightened_by": ["acme-tighten"],
+      "shadowed_by": []
     }
   ]
 }
@@ -189,6 +190,30 @@ names, in attachment order, those whose copy of the id made it stricter, and is
 empty in the common case. `action` is `null` for every rule stored in the
 database — the `rules` table has no `action` column, so there is nothing for the
 merge to take a maximum of.
+
+`shadowed_by` names, in the same order, the rulesets whose copy of this id
+carried a **different pattern** — one the merge discarded. Only the defining
+occurrence's `match` block runs, so every ruleset listed here wrote a regex
+that screens nothing under this policy. It is empty in the common case, and a
+non-empty list is worth acting on: the usual fix is to give one of the two
+rules an id of its own.
+
+It differs from `tightened_by`, which records occurrences that moved a *scalar*
+— a score, a severity — and therefore did take effect. A ruleset differing only
+in its pattern moves no scalar, so before this field it left no trace at all:
+the rule ran, the ruleset was attached and counted in every total above, and
+the pattern its author wrote never screened a request.
+
+This is reachable only from the database. The YAML loader's pattern-consistency
+gate refuses two occurrences of one id carrying different `match` blocks
+outright, so a file-defined policy cannot reach this state. The database has no
+such gate — `rules.match_spec` is `NOT NULL`, so every stored occurrence
+carries a pattern, and `UNIQUE(ruleset_id, rule_id)` is per ruleset rather than
+global, so two rulesets may legally hold the same id with different regexes.
+
+Older servers omit the field entirely rather than sending `[]`; treat its
+absence as "this server cannot compute it", which is not the same as "nothing
+is shadowed".
 
 ## Agent classes and enforcement
 
