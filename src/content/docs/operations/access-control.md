@@ -45,7 +45,8 @@ Under the hood, each route requires one capability, and each role holds a set of
 |---|---|---|
 | `config:read` | viewer, operator, admin | Read models / detectors / config surfaces |
 | `policy:read` / `policy:write` | read: all · write: operator, admin | Read vs. create/edit/delete policies |
-| `rules:read` / `rules:write` | read: all · write: operator, admin | Read vs. create/edit/delete rules and rulesets |
+| `rules:read` / `rules:write` | read: all · write: operator, admin | Read vs. toggle / delete rules and rulesets, create a ruleset |
+| `rules:author` | operator, admin | Create rules, edit rule + ruleset content, clone rulesets (built-ins excepted: content is immutable for every role; their toggle and clone need the platform role) |
 | `apikey:read` / `apikey:manage` | operator, admin | List vs. mint/suspend/revoke API keys |
 | `audit:read` / `audit:manage` | read: all · manage: admin | Read the audit log vs. purge it |
 | `user:read` / `user:manage` | admin | View users vs. create/edit/delete + assign roles |
