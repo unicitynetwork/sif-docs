@@ -55,7 +55,37 @@ Rules don't live at the top level of `/manage/*` — they belong to a **ruleset*
 | `GET` | `/manage/rules/{id}` | Get a rule directly by ID |
 | `PATCH` | `/manage/rules/{id}` | Update a rule |
 | `DELETE` | `/manage/rules/{id}` | Delete a rule |
+| `POST` | `/manage/rules/{id}/test` | Run one probe against this rule alone |
 | `GET` | `/manage/rules/stats` | Aggregate rule statistics |
+
+### Testing one rule
+
+`POST /manage/rules/{id}/test` takes `{"content": "..."}` and answers the only
+two questions a rule can answer on its own: did it match, and at what score.
+
+```json
+{
+  "rule_id": "pii-email-basic",
+  "matched": true,
+  "evaluated": true,
+  "note": null,
+  "score": 0.8,
+  "category": "pii",
+  "severity": "high",
+  "matches": [{"evidence": "...a@b.com...", "span_start": 12, "span_end": 19}]
+}
+```
+
+**No `policy_id` and no data-plane key**, unlike `POST /manage/guard/test`. A
+rule belongs to a ruleset; a policy is the separate layer that turns `score`
+into allow/flag/block, so a rule-scoped test needs none — which is why this is
+gated on `rules:read` rather than `payload:read`. Use `/manage/guard/test` when
+you want the whole pipeline instead.
+
+`evaluated` is `false` for `ml_model` and `yara` rules: the rule engine matches
+compiled patterns and those two are run by a detector of their own, so `matched`
+would be a result nobody computed. `note` says so, and the Tester is where they
+get exercised.
 
 ### Which policies use a ruleset
 
