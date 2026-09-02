@@ -174,15 +174,22 @@ writes need `registry:write` (operator+).
 | `GET` | `/manage/registry/classes/{*slug}` | Get one class; the catch-all preserves path-like slugs such as `eng/code-reviewer` |
 | `PATCH` | `/manage/registry/classes/{*slug}` | Change display name, description, owner, tags, or the attached **`policy_ids`** — the edit this registry exists for |
 | `POST` | `/manage/registry/retire/{*slug}` | Retire the class |
+| `DELETE` | `/manage/registry/classes/{*slug}` | Delete the class and release its policy attachments |
 | `GET` | `/manage/registry/enforcement` | Read the tenant's class-policy enforcement dial: `off`, `flag`, or `block` |
 | `PUT` | `/manage/registry/enforcement` | Move the dial. Body: `{"enforcement": "off" \| "flag" \| "block"}` |
 | `GET` | `/manage/registry/observed` | Agent classes seen in the audit log, registered or not, with call counts |
 
-There is **no** `DELETE` on `/manage/registry/classes/{*slug}`. A class
-retires instead of being deleted, so `audit_log.agent_class` stays joinable
-against a class that is no longer active; the policies it attaches are
-untouched by retirement, so keys already bound to it keep resolving through
-them.
+Retiring and deleting answer different questions. Retirement is the lifecycle
+state: the row, its attachments and its audit joins stay, and keys already
+bound to the class keep resolving through its policies. `DELETE` is the
+cleanup path — it removes the class and cascades away its
+`agent_class_policies` rows, so a policy whose last class this was becomes
+archivable immediately afterwards. It **refuses with `409` while any live API
+key still carries the class** (through `api_key_classes` membership or the
+key's `agent_class_id`); move those keys to another class or to none first.
+Revoked keys do not count — they cannot call again, so they never hold a class
+back. Audit history is untouched by either: `audit_log.agent_class` records
+the slug as text with no foreign key.
 
 ```bash
 curl -X PATCH https://<manage-host>/manage/registry/classes/eng/code-reviewer \

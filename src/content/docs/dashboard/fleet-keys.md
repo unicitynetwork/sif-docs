@@ -84,7 +84,7 @@ back to caller-led while the screen showed the typo as though it had
 worked. **No class (caller-led)** is its own explicit option, so clearing a
 binding is still one choice away. Only classes with an *active* lifecycle
 are offered; a retired class drops out of the list (see [Fleet › Agents →
-Retire, not delete](fleet-agents.md#retire-not-delete)).
+Retire and delete](fleet-agents.md#retire-and-delete)).
 
 A key can already carry a slug the dropdown would not otherwise list — one
 retired since, or typed by hand before this dropdown existed and never

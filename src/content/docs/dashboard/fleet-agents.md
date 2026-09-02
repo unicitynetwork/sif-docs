@@ -57,6 +57,7 @@ retiring is the same one write whether the class has one key or five.
 - **Edit…** — display name, description, owner, and tags. The slug itself
   never changes, because `audit_log.agent_class` joins on it by string.
 - **Retire…** — see below.
+- **Delete…** — see below. Demands the typed slug before it fires.
 - **View keys** — jumps to [Fleet › Keys](fleet-keys.md) filtered to the class.
 - **What it decided…** — jumps to [Activity › Audit](activity-audit.md)
   filtered to the class.
@@ -78,16 +79,24 @@ found — see "the enrolment queue" below. Both end up creating the same kind
 of row; they exist independently because a class can become known to SIF
 either way, and neither flow should have to wait on the other.
 
-## Retire, not delete
+## Retire and delete
 
-There is no way to delete a class. Retiring marks it withdrawn — it drops
-out of the pick-list an operator sees when binding a key on [Fleet ›
+Retiring marks a class withdrawn — it drops out of the pick-list an operator
+sees when binding a key on [Fleet ›
 Keys](fleet-keys.md#binding-a-key-to-an-agent-class) — but it does not cut
 off the keys already bound to it: they keep resolving through the retired
 class's policies exactly as before. Retirement is a lifecycle state, not a
 deletion, so `audit_log.agent_class` stays joinable against a class that is
 no longer active. Unbinding a key from a retired class is a separate,
 explicit action on [Fleet › Keys](fleet-keys.md).
+
+**Delete…** is the cleanup path retiring deliberately is not: it removes the
+class and releases the policies it attaches, so a policy whose last class
+this was can be deleted afterwards too. It refuses while any live key still
+carries the class — the refusal says how many and the row stays — so move
+them to another class (or none) first. Revoked keys do not hold a class back.
+The dialog asks for the typed slug before it fires, and audit history keeps
+the class name either way.
 
 ## The unclassed list and the enrolment queue
 
