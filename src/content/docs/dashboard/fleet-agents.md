@@ -103,7 +103,10 @@ the class name either way.
 Below the class table, two lists cover what the registry itself does not:
 
 - **Caller-led keys** — keys with no class. Each must name a `policy_id` on
-  every call once enforcement reaches `block`.
+  every call once enforcement reaches `block`. This one is about keys on a
+  screen about classes, so it arrives collapsed to its counts — the caller-led
+  keys, and any key bound to a class the registry has no row for — and opens
+  to the full lists on a click.
 - **Seen in traffic, not registered** — class names the audit log has
   observed in the **last 30 days** (up to 500 classes) that have no row in
   the registry yet. A class not listed here may simply not have called
