@@ -118,17 +118,33 @@ description, or position.
 
 | Method | Path | Purpose |
 |---|---|---|
-| `GET` | `/manage/policies` | List all policies |
+| `GET` | `/manage/policies` | List the active policies; `?include_archived=true` adds the archived ones |
 | `POST` | `/manage/policies` | Create a new policy |
 | `GET` | `/manage/policies/{id}` | Get one policy |
 | `PATCH` | `/manage/policies/{id}` | Update a policy |
-| `DELETE` | `/manage/policies/{id}` | Remove a policy |
+| `DELETE` | `/manage/policies/{id}` | Remove a policy — archives it once it has ever been published |
+| `POST` | `/manage/policies/{id}/restore` | Bring an archived policy back |
 | `GET` | `/manage/policies/{id}/rulesets` | The rulesets this policy runs, in flatten order |
 | `PUT` | `/manage/policies/{id}/rulesets` | Replace that list, ordered |
 | `GET` | `/manage/policies/{id}/flattened` | The rules the policy actually runs, after merging |
 | `POST` | `/manage/policies/{id}/set-default` | Mark a policy as the default for unbound keys |
 
 Policy shape matches [Concepts → Policies](../concepts/policies.md).
+
+### Archiving, and the name an archived policy keeps
+
+`DELETE` hard-deletes a policy that was never published. Once a version has
+been published the policy is **archived** instead: the row and its versions
+stay, because they are the record of what was in force at time T. The archived
+row keeps its `policy_id`, so creating a new policy under that name is refused
+with `409` — and the way out is `POST /manage/policies/{id}/restore`, not a
+second name. There is no purge: freeing the name would mean deleting published
+version rows, which the database refuses by design.
+
+An archived policy is absent from `GET /manage/policies`; list it with
+`?include_archived=true` (which is what the console's Policies screen does, so
+the holder of a refused name is visible there). Restoring is idempotent, needs
+`policy:write`, and puts the policy back in force at the version it left on.
 
 ### Which rulesets a policy runs
 
