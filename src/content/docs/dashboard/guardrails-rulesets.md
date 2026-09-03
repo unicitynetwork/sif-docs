@@ -19,12 +19,16 @@ The two tabs split the work between them:
 |---|---|---|
 | Answers | "What is loaded, and is it healthy?" | "Which rule did that, and can I change it?" |
 | Row is | one ruleset | one rule, across every ruleset |
-| Owns | create, clone, edit, enable, disable, delete | enable, disable, edit, delete a rule |
-| Never | lists individual rules | acts on a ruleset |
+| Owns | create, clone, edit, enable, disable, delete; and what is inside one ruleset | enable, disable, edit, delete a rule, anywhere |
+| Never | lists rules from more than one ruleset at a time | acts on a ruleset |
 
 Neither tab is a prerequisite for the other. The rule count on a row opens the
 Rules tab filtered to that ruleset, and the Rules tab carries its own **Ruleset**
 filter — so you never have to come here just to narrow a list.
+
+The flat list is the one that searches across everything; this tab is where a
+ruleset is **authored**, so the rules of the one you have open are listed and
+editable here.
 
 ## Two states you can only see here
 
@@ -67,6 +71,44 @@ and tags.
 ruleset's detail is the wrong place to lay a tenant-wide fault, but the warning
 is worth seeing wherever you are looking.
 
+## Rules in this ruleset
+
+Below the detail is the ruleset's own rule table — every rule it holds, off
+last and then by score — with the four verbs that change what is in it:
+
+- **Add a rule** opens the New rule form with this ruleset already chosen.
+- **Add an existing rule…** puts a rule that already exists somewhere else into
+  this one. See [Reusing a rule](#reusing-a-rule) below.
+- **Edit rule…** on a row opens the same editor the Rules tab uses: name,
+  description, severity, score, tags and the match.
+- **Remove the rule…** deletes that rule from this ruleset. It arms only once
+  you type the rule id. Another ruleset carrying the same id keeps its own copy
+  — see below.
+
+**Add a rule…** and **Add an existing rule…** are also on each row's ⋯ menu on
+the list, so you can fill a ruleset without opening it.
+
+A built-in's rules are listed and read-only: the file on disk owns them, and
+every verb above says so rather than disappearing.
+
+### Reusing a rule
+
+The same `rule_id` in two rulesets is a supported arrangement, not a mistake:
+the unique index is on `(ruleset_id, rule_id)`, so both rows exist, and a policy
+attaching both flattens them into a **single** rule with the strictest score and
+severity of the two. **Add an existing rule…** is that arrangement made
+deliberate — it copies the id and the match across verbatim, and lets you set
+this ruleset's severity and score for it.
+
+The match must stay identical. If two rulesets carry the same id with different
+patterns, only the defining occurrence's pattern runs and nothing reports the
+other, which is why the match is not editable in that dialog. A rule you want to
+*change* rather than share is a clone: **Clone this rule…** on the Rules tab
+gives it a new id and no merge.
+
+A rule carries no action of its own, so there is nothing to override there — the
+policy's thresholds turn a score into flag or block.
+
 ## Built-in rulesets
 
 A built-in ruleset is owned by its file on disk and re-synced on every reload, so
@@ -100,6 +142,17 @@ Creating a ruleset also appears on the **New rule** screen, for the case where
 you have no editable ruleset and need one before you can go any further. That is
 the one thing deliberately in two places — a list is not.
 
+## The id is the name, and it is permanent
+
+A ruleset has no display name. `ruleset_id` is its identity: policies attach it
+by that id, every rule in it hangs off it, and the API's update accepts only
+description, tags and `enabled` — so there is no rename, on this screen or any
+other. **Edit the ruleset…** says so where you would go looking for one.
+
+The way to a differently named ruleset is **Clone it under another id…**, in the
+edit dialog and on the row menu: it carries the rules across under an id you
+choose, and you then delete or disable the old one.
+
 ## Deleting
 
 Deleting a ruleset takes its rules with it, and the confirm names how many. Like
@@ -108,9 +161,10 @@ exactly.
 
 ## Capabilities
 
-Reading needs `rules:read`. Enabling, disabling and deleting need `rules:write`.
-Creating, cloning and editing need `rules:author`, which is granted to operators
-and admins. A built-in is the exception on both sides of that split: its toggle and
+Reading needs `rules:read`. Enabling, disabling and deleting — a ruleset or a
+rule in one — need `rules:write`. Creating, cloning and editing, including
+adding a rule to a ruleset and editing one in place, need `rules:author`, which
+is granted to operators and admins. A built-in is the exception on both sides of that split: its toggle and
 its clone need the platform role (`tenant:manage`), because the row belongs to
 every tenant at once.
 
