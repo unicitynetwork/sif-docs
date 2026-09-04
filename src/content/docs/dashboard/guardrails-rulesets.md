@@ -8,8 +8,9 @@ sidebar:
 Guardrails › Rulesets (`/guardrails/rulesets`) is the inventory. One row per
 ruleset, and every verb that acts on a ruleset lives here.
 
-**A ruleset is the folder; a rule is a file in it.** A rule belongs to exactly
-one ruleset, and a ruleset is switched on or off as a whole.
+**A ruleset is a named list of rules, and a rule is an object it points at.**
+One rule may be in several rulesets at once, or in none — being in none is the
+library, not an error. A ruleset is switched on or off as a whole.
 
 ## How this differs from Rules
 
@@ -74,16 +75,26 @@ is worth seeing wherever you are looking.
 ## Rules in this ruleset
 
 Below the detail is the ruleset's own rule table — every rule it holds, off
-last and then by score — with the four verbs that change what is in it:
+last and then by score — with the verbs that change what is in it:
 
 - **Add a rule** opens the New rule form with this ruleset already chosen.
 - **Add an existing rule…** puts a rule that already exists somewhere else into
   this one. See [Reusing a rule](#reusing-a-rule) below.
+- **New variant of a rule…** makes a stricter version of a rule without copying
+  it. See [Reusing a rule](#reusing-a-rule) below.
 - **Edit rule…** on a row opens the same editor the Rules tab uses: name,
   description, severity, score, tags and the match.
-- **Remove the rule…** deletes that rule from this ruleset. It arms only once
-  you type the rule id. Another ruleset carrying the same id keeps its own copy
-  — see below.
+- **Remove from this ruleset…** takes the rule out of this ruleset and leaves
+  the rule alone. A plain confirmation, no typing: the rule is not destroyed,
+  every other ruleset holding it is untouched, and adding it back is one click.
+- **Delete the rule…** destroys the rule itself, everywhere. **That** one arms
+  only once you type the rule id, and it is refused while any ruleset still
+  holds it — the refusal names them — or while any variant still takes its
+  pattern from it.
+
+The two are deliberately different verbs with different weights. Unlinking is
+reversible and cheap; deleting is neither, and it reaches rulesets you may not
+have open.
 
 **Add a rule…** and **Add an existing rule…** are also on each row's ⋯ menu on
 the list, so you can fill a ruleset without opening it.
@@ -93,18 +104,24 @@ every verb above says so rather than disappearing.
 
 ### Reusing a rule
 
-The same `rule_id` in two rulesets is a supported arrangement, not a mistake:
-the unique index is on `(ruleset_id, rule_id)`, so both rows exist, and a policy
-attaching both flattens them into a **single** rule with the strictest score and
-severity of the two. **Add an existing rule…** is that arrangement made
-deliberate — it copies the id and the match across verbatim, and lets you set
-this ruleset's severity and score for it.
+**A rule is one object, and a ruleset points at it.** There is one row per
+`rule_id` per tenant, and which rulesets hold it is a separate fact —
+`PUT /manage/rulesets/{id}/rules` is the verb that sets it. So the same rule in
+two rulesets is not two copies to keep in step. It is one rule, held twice, and
+an edit to it shows up in both.
 
-The match must stay identical. If two rulesets carry the same id with different
-patterns, only the defining occurrence's pattern runs and nothing reports the
-other, which is why the match is not editable in that dialog. A rule you want to
-*change* rather than share is a clone: **Clone this rule…** on the Rules tab
-gives it a new id and no merge.
+**Add an existing rule…** is that made deliberate. It writes a membership and
+copies nothing — no id to re-type, no match to keep identical, nothing to drift.
+A policy attaching both rulesets still sees the rule once.
+
+**Want one ruleset to be stricter about it? That is a variant, not a copy.**
+**New variant of a rule…** makes a rule with its own id, its own severity and
+score, and *no pattern of its own* — it points at the rule it tightens and
+borrows the pattern from there. Flattening keeps the strictest value of each
+field, so a variant can only tighten, never loosen, and the pattern goes on
+coming from the original, fixes included. A rule you want to give a *different
+pattern* is simply a different rule: **Clone this rule…** on the Rules tab opens
+the New rule form pre-filled from it, and you give it an id of its own.
 
 A rule carries no action of its own, so there is nothing to override there — the
 policy's thresholds turn a score into flag or block.
@@ -114,20 +131,40 @@ policy's thresholds turn a score into flag or block.
 A built-in ruleset is owned by its file on disk and re-synced on every reload, so
 it cannot be edited or deleted. The menu says so rather than hiding the verbs.
 
-Two ways to change what a built-in does:
+Its **rules**, though, are usable. A rule is a shared object, and a ruleset of
+your own points at the very same row — so nothing about a built-in being
+read-only stops you using what is in it.
 
-- **Tighten** a rule by authoring one with the same id in a ruleset of your own
-  and attaching both to the policy. Flattening keeps the strictest value of each
-  field while the pattern still comes from the shipped ruleset, so upstream fixes
-  keep arriving. It cannot loosen anything. See
+- **Use these rules in a ruleset of yours…** is the lit item on a built-in's
+  row menu, and the ordinary route. It writes a membership and copies nothing:
+  the rule stays one object, the built-in goes on holding it too, and the
+  pattern goes on receiving the fixes we ship. It needs `rules:author` and no
+  more. With no ruleset of your own yet, it asks you to start one first and
+  then offers the built-in's rules.
+- **Tighten** a rule with **New variant of a rule…**. A variant is a rule of
+  its own with its own id, its own score and severity, and no pattern — it
+  points at the rule it tightens and borrows that. Flattening keeps the
+  strictest value of each field while the pattern still comes from the shipped
+  rule, so upstream fixes keep arriving. It cannot loosen anything. See
   [Write a custom rule](../guides/write-a-custom-rule.md).
-- **Clone** the whole ruleset. You get an editable copy you own, and it lands
-  in this tenant. Cloning a built-in — like switching one on or off — is a
-  platform action: the row is shared by every tenant, so the server refuses it
-  for tenant roles and the menu says so. Disabling the original is a global
-  change, which is why the clone dialog leaves it on by default and names the
-  blast radius; a tenant wanting its own posture takes the copy and tunes it,
-  leaving everyone else's detection alone.
+
+**Cloning a built-in is not offered in the console.** It used to be, greyed
+out, and that was the wrong answer twice over. A clone *forks*: the copies stop
+receiving the updates we ship, which is the thing shared rules exist to
+prevent. And it is platform-only for reasons that have not gone away — with
+`disable_source` it retires a pack for **every** tenant, and the source row
+belongs to no tenant, so the whole operation runs with row-level security
+bypassed.
+
+Retiring a pack is still a console verb: **Disable the ruleset**, on the same
+menu and gated on the same platform role. What the clone added over it was
+doing both halves — copy, then disable — in one transaction, with no window
+where the pack is off and nothing has replaced it. That flow remains available
+through the API.
+
+**Clone the ruleset…** remains on rulesets *you* own, where it is
+tenant-scoped, needs no platform role, and shares the rules rather than copying
+them.
 
 ## New ruleset
 
@@ -155,18 +192,28 @@ choose, and you then delete or disable the old one.
 
 ## Deleting
 
-Deleting a ruleset takes its rules with it, and the confirm names how many. Like
-every destructive verb on a named object, it arms only once you type the id
-exactly.
+Deleting a ruleset removes the ruleset and its memberships. **The rules
+themselves survive** — a rule is an object several rulesets may point at, so
+destroying one holder cannot destroy the rule. Any rule this was the last holder
+of stays on the Rules tab, held by nothing, and is yours to put in another
+ruleset or delete outright.
+
+Like every destructive verb on a named object, it arms only once you type the id
+exactly. It is refused while a policy still attaches the ruleset, and the refusal
+names the policies — see [Rulesets and
+rules](../api/management-endpoints.md#rulesets-and-rules).
 
 ## Capabilities
 
 Reading needs `rules:read`. Enabling, disabling and deleting — a ruleset or a
 rule in one — need `rules:write`. Creating, cloning and editing, including
 adding a rule to a ruleset and editing one in place, need `rules:author`, which
-is granted to operators and admins. A built-in is the exception on both sides of that split: its toggle and
-its clone need the platform role (`tenant:manage`), because the row belongs to
-every tenant at once.
+is granted to operators and admins. A built-in is the exception: its toggle
+needs the platform role (`tenant:manage`), because the row belongs to every
+tenant at once, and its clone is not offered in the console at all. Taking a
+built-in's rules into a ruleset of your own is ordinary authoring — it writes a
+membership in a ruleset you own and touches the built-in not at all — so it
+needs `rules:author` and no more.
 
 See also: [Guardrails › Rules](guardrails-rules.md),
 [How the pieces fit](../concepts/how-the-pieces-fit.md),

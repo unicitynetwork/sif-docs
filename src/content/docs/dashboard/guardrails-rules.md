@@ -57,24 +57,32 @@ per-rule override to set beside it either: a built-in rule is as shipped, or it 
 switched off, or it is not attached. There is no "customised in place" state, which
 is why a ruleset reads only ever as **Built-in** or **Custom**.
 
-To make a shipped rule stricter, author a rule with the same id in a ruleset of your
-own and attach both — flattening keeps the strictest of each field. To change what
-the rule matches, clone the ruleset. See
+To use a shipped rule, add it to a ruleset of your own — it stays one rule,
+shared, so the pattern goes on receiving the fixes we ship. To make it stricter,
+author a **variant**: its own id and its own score and severity, borrowing the
+pattern from the rule it tightens. Only changing what the rule *matches* needs a
+pattern of your own. See
 [Write a custom rule](../guides/write-a-custom-rule.md).
 
 ## The row menu
 
 A rule's `⋯` menu carries rule verbs: enable or disable it, and — where the
 ruleset is one you own — edit or delete it. A built-in says **Cannot edit in
-place** with the reason, rather than hiding the verb.
+place** with the reason, rather than hiding the verb, and the reason names where
+to go instead.
 
-Two things about the ruleset appear there as well:
+Also there:
 
-- **Clone the ruleset to edit**, on a built-in. This is the escape hatch when the
-  rule you want to change is read-only, so it belongs at the moment you feel the
-  need rather than one tab away. It opens the same dialog the Rulesets tab uses —
-  and, like every verb on a built-in, it takes the platform role.
-- **Open the ruleset**, which takes you to that ruleset's detail.
+- **Clone this rule…**, which copies one rule into a ruleset you own. It needs
+  `rules:author` and nothing more.
+- **Open the ruleset**, which takes you to that ruleset's detail — where
+  **Use these rules in a ruleset of yours…** and **New variant of a rule…**
+  live.
+
+**Clone the ruleset to edit** used to sit here, on a built-in, and is gone. It
+was greyed out for everyone but the platform role, and it forks — the copies
+stop receiving the updates we ship. The two verbs named above do the job it was
+standing in for, without the fork and without the platform role.
 
 Every other ruleset verb — enable, disable, edit, delete — lives on
 [Guardrails › Rulesets](guardrails-rulesets.md). One list per concept.

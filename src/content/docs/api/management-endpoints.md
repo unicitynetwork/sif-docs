@@ -40,7 +40,10 @@ Send `Authorization: Bearer <token>` on every subsequent management call.
 
 ## Rulesets and rules
 
-Rules don't live at the top level of `/manage/*` — they belong to a **ruleset**.
+**A rule is an object; a ruleset is a named list pointing at rules.** One rule
+may be in several rulesets at once, or in none. `rule_id` is unique per tenant,
+so a rule is addressable on its own at `/manage/rules/{id}` — but there is no
+`GET /manage/rules` collection, and a rule is authored *into* a ruleset.
 
 | Method | Path | Purpose |
 |---|---|---|
@@ -49,14 +52,58 @@ Rules don't live at the top level of `/manage/*` — they belong to a **ruleset*
 | `GET` | `/manage/rulesets/{id}` | Get a ruleset |
 | `PATCH` | `/manage/rulesets/{id}` | Update ruleset metadata |
 | `DELETE` | `/manage/rulesets/{id}` | Delete a ruleset |
+| `POST` | `/manage/rulesets/{id}/clone` | Copy a ruleset under a new id, optionally retiring the source |
 | `GET` | `/manage/rulesets/{id}/policies` | The policies that attach this ruleset |
 | `GET` | `/manage/rulesets/{ruleset_id}/rules` | List rules in a ruleset |
-| `POST` | `/manage/rulesets/{ruleset_id}/rules` | Add a rule to a ruleset |
+| `POST` | `/manage/rulesets/{ruleset_id}/rules` | Author a new rule into a ruleset |
+| `PUT` | `/manage/rulesets/{ruleset_id}/rules` | Replace which rules it holds, ordered |
 | `GET` | `/manage/rules/{id}` | Get a rule directly by ID |
 | `PATCH` | `/manage/rules/{id}` | Update a rule |
 | `DELETE` | `/manage/rules/{id}` | Delete a rule |
 | `POST` | `/manage/rules/{id}/test` | Run one probe against this rule alone |
 | `GET` | `/manage/rules/stats` | Aggregate rule statistics |
+
+### Membership is its own verb
+
+`PUT /manage/rulesets/{ruleset_id}/rules` takes `{"rule_ids": ["<uuid>", …]}` —
+the **whole** list, first reads first — and replaces what the ruleset holds. It
+writes no rules: everything it names must already exist. This is how a rule gets
+into a second ruleset, and how it comes out of one — the dashboard's **Add an
+existing rule…** and **Remove from this ruleset…** are both this call.
+
+The whole list, not a diff, because `position` is the flatten order and a
+partial update could not carry it. It is the same shape
+`PUT /manage/policies/{id}/rulesets` uses one level up.
+
+An empty list is legal and empties the ruleset — unless a live policy attaches
+it, which is refused: an attached ruleset holding nothing reads as protection
+and contributes none.
+
+It refuses a built-in ruleset with `409`: a shipped pack's rules come from its
+file, so the next boot's sync would put back anything removed. Put the rules you
+want in a ruleset of your own instead — they are the very same rows, so nothing
+is copied and upstream fixes keep arriving.
+
+`POST` to the same path is a different verb: it *authors a new rule* and adds it.
+Use `PUT` for a rule that already exists, and `POST` for one that does not.
+
+### Cloning a ruleset
+
+`POST /manage/rulesets/{id}/clone` takes `{"new_ruleset_id": "…",
+"disable_source": true}` — both optional; the id defaults to `<source>-custom`
+and `disable_source` defaults to **true**. The copy and the retire happen in one
+transaction, so there is no window where the source is off and nothing has
+replaced it, and no window where both are on double-firing every rule.
+
+What "copy" means depends on who owns the source. Cloning **one of your own**
+rulesets shares the rules: the new ruleset points at the same rule objects, and
+editing one edits both. Cloning a **built-in** forks them into editable rules of
+your own, which is the only way to change what a shipped pack contains — and it
+needs the platform role (`tenant:manage`), because `disable_source` retires that
+pack for *every* tenant. The console does not offer it; this route is the way.
+
+A forked copy stops receiving the fixes we ship. Reuse (the `PUT` above) or a
+variant is usually what you want instead.
 
 ### Testing one rule
 
@@ -77,10 +124,14 @@ two questions a rule can answer on its own: did it match, and at what score.
 ```
 
 **No `policy_id` and no data-plane key**, unlike `POST /manage/guard/test`. A
-rule belongs to a ruleset; a policy is the separate layer that turns `score`
-into allow/flag/block, so a rule-scoped test needs none — which is why this is
-gated on `rules:read` rather than `payload:read`. Use `/manage/guard/test` when
-you want the whole pipeline instead.
+rule matches or it does not, whichever rulesets happen to hold it; a policy is
+the separate layer that turns `score` into allow/flag/block, so a rule-scoped
+test needs none — which is why this is gated on `rules:read` rather than
+`payload:read`. Use `/manage/guard/test` when you want the whole pipeline
+instead.
+
+A **variant** answers with the pattern it inherits, since that is the pattern it
+would screen with.
 
 `evaluated` is `false` for `ml_model` and `yara` rules: the rule engine matches
 compiled patterns and those two are run by a detector of their own, so `matched`
@@ -187,8 +238,7 @@ more than one.
       "action": null,
       "enabled": true,
       "defined_by": "pii-detection",
-      "tightened_by": ["acme-tighten"],
-      "shadowed_by": []
+      "tightened_by": ["acme-tighten"]
     }
   ]
 }
@@ -207,29 +257,12 @@ empty in the common case. `action` is `null` for every rule stored in the
 database — the `rules` table has no `action` column, so there is nothing for the
 merge to take a maximum of.
 
-`shadowed_by` names, in the same order, the rulesets whose copy of this id
-carried a **different pattern** — one the merge discarded. Only the defining
-occurrence's `match` block runs, so every ruleset listed here wrote a regex
-that screens nothing under this policy. It is empty in the common case, and a
-non-empty list is worth acting on: the usual fix is to give one of the two
-rules an id of its own.
-
-It differs from `tightened_by`, which records occurrences that moved a *scalar*
-— a score, a severity — and therefore did take effect. A ruleset differing only
-in its pattern moves no scalar, so before this field it left no trace at all:
-the rule ran, the ruleset was attached and counted in every total above, and
-the pattern its author wrote never screened a request.
-
-This is reachable only from the database. The YAML loader's pattern-consistency
-gate refuses two occurrences of one id carrying different `match` blocks
-outright, so a file-defined policy cannot reach this state. The database has no
-such gate — `rules.match_spec` is `NOT NULL`, so every stored occurrence
-carries a pattern, and `UNIQUE(ruleset_id, rule_id)` is per ruleset rather than
-global, so two rulesets may legally hold the same id with different regexes.
-
-Older servers omit the field entirely rather than sending `[]`; treat its
-absence as "this server cannot compute it", which is not the same as "nothing
-is shadowed".
+A **variant** — a rule that tightens another, holding its own scalars and
+inheriting the other's pattern — merges into the rule it tightens rather than
+appearing beside it. `rule_id` is then the tightened rule's, because that is the
+rule being reported on, and the variant's ruleset appears in `tightened_by`. A
+policy that attaches a variant without the rule it tightens gets the variant
+under its own id instead: there is nothing for it to merge into.
 
 ## Agent classes and enforcement
 

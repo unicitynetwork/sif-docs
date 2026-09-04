@@ -40,15 +40,19 @@ validates only when the patch touches content, so turning a policy to
 enforcement down must never be blocked by a defect in the thing being turned
 down.
 
-**Added — `shadowed_by` on `GET /manage/policies/{id}/flattened`.**
-Each flattened rule now names the rulesets whose copy of its id carried a
-*different pattern* — one the merge discarded. Previously that left no trace:
-`tightened_by` records only occurrences that moved a scalar, so a ruleset
-differing purely in its regex looked identical to one that agreed, while the
-pattern its author wrote screened nothing. Empty in the common case, and
-absent entirely from older servers, which is not the same as empty. Reachable
-only from the database — the YAML loader already refuses two occurrences of an
-id with different `match` blocks.
+**Changed — the flatten merges a rule with the variants that tighten it.**
+A tightening rule used to be a second row reusing the id it tightened; it is now
+a *variant*, with its own id and a pointer to the rule whose pattern it borrows.
+`GET /manage/policies/{id}/flattened` and the guard's own loader both merge on
+that lineage, so attaching a pack and a ruleset that tightens it gives one rule
+at the strictest setting rather than two rules firing on the same text. The
+merged rule is reported under the tightened rule's id, and the variant's ruleset
+appears in `tightened_by`.
+
+The `shadowed_by` field, added earlier in this unreleased cycle, is **removed**.
+It reported one id holding two different patterns with one silently discarded,
+and the schema no longer permits that state: a rule defines a pattern or
+inherits one, never both.
 
 **Added — `publishable_detector_ids` on `GET /manage/detectors`.**
 The full set of detector ids a policy stage may name: the live pipeline's
