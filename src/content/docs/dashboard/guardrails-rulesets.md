@@ -37,7 +37,7 @@ The Rules tab builds its table out of rules, so a ruleset with no rows in it
 cannot appear there at all:
 
 - **Empty.** A ruleset you just made, with nothing in it yet. Health says
-  "Empty — add a rule".
+  "Empty — no rules yet".
 
 Before this screen existed, it was invisible, and its verbs were unreachable.
 
@@ -77,9 +77,13 @@ is worth seeing wherever you are looking.
 Below the detail is the ruleset's own rule table — every rule it holds, off
 last and then by score — with the verbs that change what is in it:
 
-- **Add a rule** opens the New rule form with this ruleset already chosen.
 - **Add an existing rule…** puts a rule that already exists somewhere else into
-  this one. See [Reusing a rule](#reusing-a-rule) below.
+  this one. It leads, and is the only filled button here: a rule is a shared
+  object, so reusing one keeps it a single rule that goes on receiving the
+  pattern fixes we ship. See [Reusing a rule](#reusing-a-rule) below.
+- **Create a rule** opens the New rule form with this ruleset already chosen.
+  It is named for what it does — it writes a new rule, and is not a shorthand
+  for the add above.
 - **New variant of a rule…** makes a stricter version of a rule without copying
   it. See [Reusing a rule](#reusing-a-rule) below.
 - **Edit rule…** on a row opens the same editor the Rules tab uses: name,
@@ -96,11 +100,28 @@ The two are deliberately different verbs with different weights. Unlinking is
 reversible and cheap; deleting is neither, and it reaches rulesets you may not
 have open.
 
-**Add a rule…** and **Add an existing rule…** are also on each row's ⋯ menu on
-the list, so you can fill a ruleset without opening it.
+All three are also on each row's ⋯ menu on the list, so you can fill a ruleset
+without opening it.
 
-A built-in's rules are listed and read-only: the file on disk owns them, and
-every verb above says so rather than disappearing.
+A built-in's row carries the **same** menu — every row does. What changes is
+which items are live, and what the greyed ones say when you hover them. Two
+menus that disagreed about what the product has would mean you could not learn
+one and know the other.
+
+There are two reasons an item is greyed, and the tooltip always tells you which:
+
+- **A role you do not hold.** Somebody has it and the product does it.
+  **Clone the ruleset…** and **Disable the ruleset** are these on a built-in:
+  both are supported, and both need the platform role, because a built-in is
+  shared by every tenant.
+- **The thing's own nature.** No role changes it. **Create a rule…**, **New
+  variant of a rule…**, **Edit the ruleset…** and **Delete the ruleset…** are
+  these on a built-in: the file on disk owns what is in it, and the server
+  refuses them without checking your role at all.
+
+What stays lit on a built-in is reuse, in two sizes: **Use these rules in a
+ruleset of yours…** takes the whole pack, and **Add an existing rule…** takes
+one rule out of it. Both land in a ruleset you own, and neither copies anything.
 
 ### Reusing a rule
 
@@ -121,7 +142,11 @@ borrows the pattern from there. Flattening keeps the strictest value of each
 field, so a variant can only tighten, never loosen, and the pattern goes on
 coming from the original, fixes included. A rule you want to give a *different
 pattern* is simply a different rule: **Clone this rule…** on the Rules tab opens
-the New rule form pre-filled from it, and you give it an id of its own.
+the New rule form pre-filled from it, already under an id of its own — the copy
+is numbered (`pii-001` becomes `pii-001_001`) so it cannot collide with the rule
+it came from. That form asks which of your rulesets it goes in, because a rule
+is created into one; if none of them is the right home, **Start a new ruleset**
+is on that same screen, so you do not have to leave and lose the draft.
 
 A rule carries no action of its own, so there is nothing to override there — the
 policy's thresholds turn a score into flag or block.
@@ -135,12 +160,18 @@ Its **rules**, though, are usable. A rule is a shared object, and a ruleset of
 your own points at the very same row — so nothing about a built-in being
 read-only stops you using what is in it.
 
-- **Use these rules in a ruleset of yours…** is the lit item on a built-in's
-  row menu, and the ordinary route. It writes a membership and copies nothing:
-  the rule stays one object, the built-in goes on holding it too, and the
-  pattern goes on receiving the fixes we ship. It needs `rules:author` and no
-  more. With no ruleset of your own yet, it asks you to start one first and
-  then offers the built-in's rules.
+- **Use these rules in a ruleset of yours…** takes the **whole pack** — every
+  rule in the built-in — into one ruleset you own. This is how you get a version
+  of a shipped pack you can shape: take it, then remove what you do not want and
+  tighten what you do. It writes memberships and copies nothing, so the rules
+  stay single objects, the built-in goes on holding them too, and their patterns
+  go on receiving the fixes we ship. Rules your ruleset already holds are left
+  where they are rather than moved to the end. It needs `rules:author` and no
+  more. With no ruleset of your own yet, it asks you to start one first and then
+  makes the offer again.
+- **Add an existing rule…**, on the same menu, takes **one** rule out of the
+  pack instead — the commoner case, since most of a built-in is usually not what
+  you are after. Same act, same PUT, different size.
 - **Tighten** a rule with **New variant of a rule…**. A variant is a rule of
   its own with its own id, its own score and severity, and no pattern — it
   points at the rule it tightens and borrows that. Flattening keeps the
@@ -148,10 +179,12 @@ read-only stops you using what is in it.
   rule, so upstream fixes keep arriving. It cannot loosen anything. See
   [Write a custom rule](../guides/write-a-custom-rule.md).
 
-**Cloning a built-in is not offered in the console.** It used to be, greyed
-out, and that was the wrong answer twice over. A clone *forks*: the copies stop
-receiving the updates we ship, which is the thing shared rules exist to
-prevent. And it is platform-only for reasons that have not gone away — with
+**Cloning a built-in needs the platform role**, so on an ordinary admin account
+it is greyed with that reason. It is offered rather than hidden, because it is a
+real act that somebody can perform — but it is not the way to get at a pack's
+rules, and the two reuse verbs above it are. A clone *forks*: the copies stop
+receiving the updates we ship, which is the thing shared rules exist to prevent.
+It is platform-only for reasons that have not gone away either — with
 `disable_source` it retires a pack for **every** tenant, and the source row
 belongs to no tenant, so the whole operation runs with row-level security
 bypassed.

@@ -135,11 +135,29 @@ paraphrase matters.
 
 ## From the dashboard instead
 
-**Guardrails › Rules › New rule**. Pick the ruleset, then the match type from the
-five above — the editor changes to suit it, so a keyword rule gets a word list
-and a regex rule gets a pattern box.
+**Guardrails › Rules › New rule**. Pick the ruleset, then the **Rule type** —
+it sits near the top, under Description, because it decides which fields the
+rest of the form shows you. Every type above is there, and so are **YARA** and
+**ML model**:
 
-Open any existing rule to see the same editor with its patterns filled in.
+| Type | What the editor gives you |
+|---|---|
+| regex | a pattern box, one per line, and any/all |
+| keywords | a word list, and any/all |
+| semantic similarity | reference texts and a threshold |
+| YARA | rule source, or a path to a `.yar` file |
+| ML model | the models registered on this deployment, and a threshold |
+| transform, then match | a checklist of the transforms the engine knows, and a nested editor for what runs after them |
+| composite | add conditions, each its own full editor — they nest as deep as you need |
+
+A model rule has **no default threshold** on purpose: it is the field that
+decides whether the rule ever fires, so the form makes you choose one.
+
+If you ever see a plain JSON box instead of fields, the spec is one the editor
+has no fields for — a rule type newer than it, or something written by hand. It
+is kept exactly as typed rather than flattened into whatever fits.
+
+Open any existing rule to see the same editor with its values filled in.
 Built-in rules show it read-only, because the file owns the body.
 
 ## Choosing a score
