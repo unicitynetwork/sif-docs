@@ -11,6 +11,47 @@ Each release entry documents what changed, with attention to anything an operato
 
 Items in flight that have not yet shipped.
 
+**Removed — `POST /manage/rulesets/{id}/clone`.**
+Read this before upgrading: a caller using it gets a 404.
+
+Copying a ruleset is done on the **New ruleset** page now, and it defaults to
+the safe behaviour the route did not have: the new ruleset points at the SAME
+rules, so their patterns go on receiving the fixes we ship. A checkbox on that
+form makes its own copies instead, and says what that costs — a copy of a
+built-in rule stops receiving those fixes permanently.
+
+The route made copies unconditionally and offered no way to say otherwise. It
+also required the **platform role** for a built-in source, because
+`disable_source` retired a pack for every tenant; the new path needs only
+`rules:author`, so an ordinary operator can finally get editable copies of
+built-in rules. `disable_source` itself has no replacement and needs none:
+"Disable the ruleset" already exists on the same screen. Take the copy, then
+turn the original off.
+
+**Changed — a rules directory with no database is now a startup error.**
+Read this before upgrading: a deployment running file-only will not start.
+
+The packs under `rules/` are how default rules are shipped INTO a database, and
+policies select rules from that database. Rules compiled without one therefore
+belong to no policy's selection: every match they found was found and then
+discarded, and the request returned 200 having screened nothing. Configure a
+database, or remove `rules.directory` to run without rule matching at all and
+know that you have.
+
+**Changed — pack edits reach the database at boot, not on the reload tick.**
+
+Composition reads the database now; the rules directory is read once at startup
+to conform it. A pattern fix edited in a YAML file therefore needs a restart,
+where it used to hot-apply on the reload interval.
+
+What you get for it: the fix now actually arrives. The mirror only ever INSERTed
+ids it had not seen, so a shipped pattern fix never reached a database that
+already held the rule — one deployment was found running a rule with four
+patterns whose file carried six, and refusing to compose at all as a result.
+The mirror now updates changed rules, retires ones dropped from a pack, and
+retires a pack whose file is gone — unless a policy still attaches it, in which
+case nothing is touched and a warning names it.
+
 **Changed — a policy naming one detector in two stages is now refused.**
 Read this before upgrading: plans that published yesterday can fail today.
 
