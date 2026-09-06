@@ -143,8 +143,9 @@ field, so a variant can only tighten, never loosen, and the pattern goes on
 coming from the original, fixes included. A rule you want to give a *different
 pattern* is simply a different rule: **Clone this rule…** on the Rules tab opens
 the New rule form pre-filled from it, already under an id of its own — the copy
-is numbered (`pii-001` becomes `pii-001_001`) so it cannot collide with the rule
-it came from. That form asks which of your rulesets it goes in, because a rule
+is named for the ruleset it lands in (`pi-direct-001` copied into `acme-jvs`
+becomes `acme-jvs-pi-direct-001`) so it cannot collide with the rule it came
+from. That form asks which of your rulesets it goes in, because a rule
 is created into one; if none of them is the right home, **Start a new ruleset**
 is on that same screen, so you do not have to leave and lose the draft.
 
@@ -167,8 +168,9 @@ read-only stops you using what is in it.
   stay single objects, the built-in goes on holding them too, and their patterns
   go on receiving the fixes we ship. Rules your ruleset already holds are left
   where they are rather than moved to the end. It needs `rules:author` and no
-  more. With no ruleset of your own yet, it asks you to start one first and then
-  makes the offer again.
+  more. With no ruleset of your own yet, it hands the pack to the **New
+  ruleset** page as its starting point, so the ruleset you make there is
+  created already holding those rules.
 - **Add an existing rule…**, on the same menu, takes **one** rule out of the
   pack instead — the commoner case, since most of a built-in is usually not what
   you are after. Same act, same PUT, different size.
