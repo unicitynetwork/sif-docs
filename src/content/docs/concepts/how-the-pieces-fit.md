@@ -69,14 +69,14 @@ the *type*:
 pub fn new(id, patterns: Vec<RegexPattern>, config) -> EngineResult<Self>
 ```
 
-But the daemon hands it a constant (`semanticd/src/main.rs:569`):
+But the shared runtime hands it a constant (`crates/semanticd/src/app.rs`):
 
 ```rust
 RegexDetector::with_patterns("pii_regex", RegexPatternBuilder::pii_patterns())
 ```
 
 So `pii_regex` and `secrets_regex` are two *instances* of the same generic
-detector, created in `main.rs`. **The code is configurable; the wiring is
+detector, created in `app.rs`. **The code is configurable; the wiring is
 not.** Changing what `pii_regex` matches means editing `pii_patterns()` and
 rebuilding. Nothing reads config, YAML or the database for them.
 
@@ -222,7 +222,7 @@ rule.**
 There is **no filesystem watcher.** Reload is driven two ways, both funnelling
 through one writer so they cannot disagree:
 
-1. **A timer.** `hot_reload_rules` (`semanticd/src/main.rs:1455`) ticks every
+1. **A timer.** `hot_reload_rules` (`crates/semanticd/src/app.rs`) ticks every
    `rules.reload_interval_secs` — **30 seconds** in `config.demo.toml`.
 2. **Redis pub/sub.** `redis_subscriber.rs` triggers the same path on a
    message, so with Redis configured the change is near-immediate.

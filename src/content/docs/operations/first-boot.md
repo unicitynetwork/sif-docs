@@ -11,7 +11,7 @@ The end-to-end recipe for the first time a `semanticd serve` process starts agai
 4. Mint an API key for your application
 5. Rotate the admin password
 
-Grounded in [`crates/semanticd/src/main.rs`](https://github.com/unicitynetwork/semanticd/blob/main/crates/semanticd/src/main.rs) (the admin-seeding block) and [`crates/semd-manage/src/handlers/auth.rs`](https://github.com/unicitynetwork/semanticd/blob/main/crates/semd-manage/src/handlers/auth.rs) (login + JWT minting).
+Grounded in [`crates/semanticd/src/app.rs`](https://github.com/unicitynetwork/semanticd/blob/main/crates/semanticd/src/app.rs) (the admin-seeding block) and [`crates/semd-manage/src/handlers/auth.rs`](https://github.com/unicitynetwork/semanticd/blob/main/crates/semd-manage/src/handlers/auth.rs) (login + JWT minting).
 
 ## 1 · Set the environment
 

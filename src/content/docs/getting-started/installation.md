@@ -62,7 +62,7 @@ git clone https://github.com/unicitynetwork/semanticd
 cd semanticd
 
 # Build the binary
-cargo build --release --bin semanticd
+cargo build --release -p sif-server
 
 # Generate a starter config.toml in the cwd
 ./target/release/semanticd init

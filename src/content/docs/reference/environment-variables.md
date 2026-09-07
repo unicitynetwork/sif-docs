@@ -3,7 +3,7 @@ title: Environment variables
 description: Every environment variable the gateway reads, with TOML cross-references.
 ---
 
-Grounded in [`crates/semanticd/src/cli.rs`](https://github.com/unicitynetwork/semanticd/blob/main/crates/semanticd/src/cli.rs) (CLI + per-flag env), [`crates/semanticd/src/main.rs`](https://github.com/unicitynetwork/semanticd/blob/main/crates/semanticd/src/main.rs) (admin seeding + JWT secret), and the config-override layer in `semanticd/src/config.rs`.
+Grounded in [`crates/semanticd/src/cli.rs`](https://github.com/unicitynetwork/semanticd/blob/main/crates/semanticd/src/cli.rs) (CLI + per-flag env), [`crates/semanticd/src/app.rs`](https://github.com/unicitynetwork/semanticd/blob/main/crates/semanticd/src/app.rs) (admin seeding + JWT secret), and the config-override layer in `crates/semanticd/src/config.rs`.
 
 ## Headline variables (set these)
 
