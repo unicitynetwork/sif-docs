@@ -34,7 +34,7 @@ body.
 
 | Field | Always present | Meaning |
 |---|---|---|
-| `code` | yes | One of the eight `/api/v1/*` codes below, PascalCase |
+| `code` | yes | One of the ten `/api/v1/*` codes below, PascalCase |
 | `message` | yes | Human-readable explanation |
 
 ### `/manage/*` — `ManageError` (semd-manage)
@@ -42,7 +42,7 @@ body.
 ```json
 {
   "error": "conflict",
-  "message": "policy 'strict' already exists"
+  "message": "Policy ID 'strict' is already taken — by a live policy, or by an archived one, which keeps its ID for the audit history. …"
 }
 ```
 
@@ -53,7 +53,7 @@ and it holds a hand-written `snake_case` string
 
 | Field | Always present | Meaning |
 |---|---|---|
-| `error` | yes | One of the ten `/manage/*` codes below, `snake_case` |
+| `error` | yes | One of the twelve `/manage/*` codes below, `snake_case` |
 | `message` | yes | Human-readable explanation |
 
 ## `/api/v1/*` error codes
@@ -73,11 +73,11 @@ Ten values, from `ErrorCode` via `ApiError::error_code()`:
 | `InternalError` | `500` | Unhandled exception, detector failure, or generic server-side error | Check the gateway logs; correlate with the `X-Request-Id` response header |
 | `ServiceUnavailable` | `503` | Dependency (Postgres / Redis / model) unreachable, or the gateway is shutting down | Retry with backoff; check dependency health |
 
-> The `ApiError` enum distinguishes more cases internally (e.g. `BadRequest` vs `NotFound`, `Timeout` vs `Unavailable`), but the wire layer maps them all into the eight codes above via [`ApiError::error_code()`](https://github.com/unicitynetwork/semanticd/blob/main/crates/semd-api/src/error.rs).
+> The `ApiError` enum distinguishes more cases internally (e.g. `BadRequest` vs `NotFound`, `Timeout` vs `Unavailable`), but the wire layer maps them all into the ten codes above via [`ApiError::error_code()`](https://github.com/unicitynetwork/semanticd/blob/main/crates/semd-api/src/error.rs).
 
 ## `/manage/*` error codes
 
-Ten values, from `ManageError::error_code()` — a genuinely richer catalogue
+Twelve values, from `ManageError::error_code()` — a genuinely richer catalogue
 than `/api/v1/*`'s, with a real `409 conflict` and a `502 bad_gateway` that
 `/api/v1/*` has no equivalent for:
 
@@ -87,12 +87,19 @@ than `/api/v1/*`'s, with a real `409 conflict` and a `502 bad_gateway` that
 | `unauthorized` | `401` | No or invalid credential |
 | `forbidden` | `403` | Authenticated but lacking the required capability |
 | `not_found` | `404` | Resource doesn't exist |
-| `conflict` | `409` | Resource already exists (duplicate name), or can't be deleted while in use |
+| `unsupported_media_type` | `415` | The body was not sent as `application/json` |
+| `unprocessable_entity` | `422` | The body is JSON but does not match the endpoint's shape |
+| `conflict` | `409` | The identifier is already taken — for policies that is `policy_id`, not the display name, and the holder may be an archived row (see [Management endpoints](../api/management-endpoints.md)) — or the resource can't be deleted while in use |
 | `validation_error` | `400` | Field-level validation failure |
 | `database_error` | `500` | Underlying Postgres error |
 | `internal_error` | `500` | Generic server-side error |
 | `bad_gateway` | `502` | Upstream dependency unreachable or answered unusably |
 | `service_unavailable` | `503` | Process not in a shape that can serve safely |
+
+> `415` and `422` are reached before the authorization check, because the
+> handler cannot extract the body until it parses. So a caller with no
+> permission **and** a malformed body is told the body is wrong, not that it
+> is forbidden. Fix the body first, then read the `403` underneath it.
 
 ## Rate-limit response in detail
 
@@ -141,8 +148,8 @@ behaviour matches the tables above.
 
 ## Stability promise
 
-The `/api/v1/*` `code` values (eight) and the `/manage/*` `error` values
-(ten) are each stable within their own catalogue. New codes may be added to
+The `/api/v1/*` `code` values (ten) and the `/manage/*` `error` values
+(twelve) are each stable within their own catalogue. New codes may be added to
 either; existing codes will not be renamed or repurposed. Message strings
 are **not** stable — parse on `code` / `error`, surface `message` for
 humans.

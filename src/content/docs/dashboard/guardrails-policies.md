@@ -89,14 +89,53 @@ A file-backed policy can drift from the YAML it came from — someone edited it
 through the API, or the file changed underneath. Drifted policies are surfaced on
 [Home](home.md) with a Review verb.
 
-## Deleting
+## Narrowing the list
 
-**Delete policy…** asks you to type the policy's name first. A policy bound to keys
-cannot simply vanish; move those keys to another policy first.
+Above the list are three filters — **Active**, **Archived** and **All** — each
+carrying its own count, plus a search box that matches on name and Policy ID.
+**Active** is the default.
+
+Archived policies are fetched even when they are not shown, because each one
+still holds its Policy ID and a refused ID whose holder is invisible was the
+whole of the problem. So when the Active filter is hiding archived rows, the
+empty state says how many, and points at **Archived**. An archived row that is
+on screen is marked `· archived`.
+
+Opening a link to an archived policy widens the filter for you, rather than
+selecting a row the filter then hides.
+
+## Archiving and deleting
+
+Which of the two you get depends on whether the policy has ever been published,
+and the menu says which before you commit to it:
+
+| The policy | Menu item | What happens |
+|---|---|---|
+| Has a published version | **Archive policy…** | It stops running and is kept for the audit trail. Its Policy ID stays taken; a new policy may reuse the *name*. You can restore it later |
+| Was never published | **Delete policy…** | It is removed outright and its Policy ID is freed. This cannot be undone |
+
+Both ask you to type the **Policy ID** — not the name — to arm the button. A
+published version records what was in force at the time, and the database
+refuses to delete one, which is why archiving exists at all: there is no purge.
+
+A policy bound to keys cannot simply vanish; move those keys to another policy
+first. The default policy cannot be archived or deleted — make another the
+default first.
+
+## Restoring
+
+An archived policy's `⋯` menu offers **Restore policy**, and the editor panel
+shows an **Archived** banner with the same verb. Restoring puts it back in force
+at the version it left on.
+
+Until then the server refuses every change to an archived policy, so its editor
+fields are disabled rather than accepting edits that would fail on save. An
+archived policy also cannot be made the default; restore it first.
 
 ## Capabilities
 
-Reading needs `policy:read`; editing, publishing and deleting need `policy:write`.
+Reading needs `policy:read`; editing, publishing, archiving, deleting and
+restoring need `policy:write`.
 
 See also: [Policies](../concepts/policies.md),
 [Tune a policy threshold](../guides/tune-a-policy-threshold.md).

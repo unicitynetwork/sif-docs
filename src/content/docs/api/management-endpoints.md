@@ -182,19 +182,27 @@ description, or position.
 
 Policy shape matches [Concepts → Policies](../concepts/policies.md).
 
-### Archiving, and the name an archived policy keeps
+### Archiving, and the Policy ID an archived policy keeps
 
 `DELETE` hard-deletes a policy that was never published. Once a version has
 been published the policy is **archived** instead: the row and its versions
-stay, because they are the record of what was in force at time T. The archived
-row keeps its `policy_id`, so creating a new policy under that name is refused
-with `409` — and the way out is `POST /manage/policies/{id}/restore`, not a
-second name. There is no purge: freeing the name would mean deleting published
-version rows, which the database refuses by design.
+stay, because they are the record of what was in force at time T. There is no
+purge: freeing the ID would mean deleting published version rows, which the
+database refuses by design.
+
+The archived row keeps its `policy_id`, so creating a new policy under that
+**ID** is refused with `409`. The `name` is a separate column and is not
+unique — a new policy may carry the same display name. So there are two ways
+past the conflict, and the `409` message names both: give the new policy a
+different `policy_id` and keep the name you wanted, or, if it is the same
+policy coming back, `POST /manage/policies/{id}/restore` instead.
+
+`policy_id` is the API's handle for the policy and cannot be changed after
+creation, which is why the conflict is worth spelling out rather than retrying.
 
 An archived policy is absent from `GET /manage/policies`; list it with
 `?include_archived=true` (which is what the console's Policies screen does, so
-the holder of a refused name is visible there). Restoring is idempotent, needs
+the holder of a refused ID is visible there). Restoring is idempotent, needs
 `policy:write`, and puts the policy back in force at the version it left on.
 
 ### Which rulesets a policy runs

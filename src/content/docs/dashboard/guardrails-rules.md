@@ -26,8 +26,8 @@ enabled, *and* the ruleset it lives in enabled. The engine drops a disabled rule
 whole, so a rule that is on inside a ruleset that is off cannot fire. The row says
 `Off` in that case, and its tooltip names the ruleset as the reason.
 
-This matters when you clone a ruleset to modify it: if you leave the original enabled,
-both run, and detections are counted twice.
+This matters when you copy a ruleset on the **New ruleset** page in order to modify
+it: if you leave the original enabled, both run, and detections are counted twice.
 
 ## The list
 

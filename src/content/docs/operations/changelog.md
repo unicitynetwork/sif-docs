@@ -11,6 +11,53 @@ Each release entry documents what changed, with attention to anything an operato
 
 Items in flight that have not yet shipped.
 
+**Changed — rules and policies are now published as one atomic generation.**
+
+A reload used to swap the compiled rules and the resolved policies separately.
+A request landing between the two saw a mismatched pair: new policies selecting
+rules that had not arrived, or the reverse. Both halves are now swapped
+together, and a request pins the pair it started with, so a reload can no
+longer happen underneath one.
+
+Nothing to do on upgrade. The visible difference is that a request in flight
+during a reload now completes against the generation it began with.
+
+**Changed — one tenant's broken rules no longer stall every tenant's reload.**
+
+A tenant slice that fails to compile used to be able to hold up the swap. Now
+the swap proceeds for everyone else, and the failing tenant keeps the slice it
+had (`Stale`) or falls back to the shared baseline (`BaselineFallback`) —
+never a neighbour's rules. The status is per tenant and is surfaced on that
+tenant's ruleset rows.
+
+The baseline is still all-or-nothing: if it fails to compile, the whole swap is
+abandoned and the previous generation keeps serving. Stale beats empty.
+
+**Changed — the `409` for a duplicate policy names the ID, not the name.**
+
+Creating a policy whose `policy_id` is taken returned `policy '<x>' already
+exists`. Read against a console that hides archived rows, that looked like a
+lie, and it pointed at the wrong field: `policy_id` is unique, `name` is not.
+Operators concluded the *name* was spent and gave up, when the way through was
+to keep the name and change the ID — one field above the button they had just
+pressed.
+
+The message now names the field, says the holder may be an archived row, and
+gives both ways out: a different `policy_id`, or
+`POST /manage/policies/{id}/restore` if it is the same policy coming back. The
+status code and the `error` value are unchanged, so nothing that keys on those
+breaks; only the `message` text differs.
+
+**Changed — the console distinguishes archiving from deleting, and can filter
+the policy list.**
+
+The policy list has **Active** / **Archived** / **All** filters with counts and
+a search box; Active is the default, and its empty state says how many archived
+policies it is hiding. The `⋯` menu offers **Archive policy…** for a policy
+that has ever been published and **Delete policy…** for one that has not, and
+both confirmations ask for the **Policy ID** rather than the name. An archived
+policy offers **Restore policy** instead of a second delete.
+
 **Removed — `POST /manage/rulesets/{id}/clone`.**
 Read this before upgrading: a caller using it gets a 404.
 

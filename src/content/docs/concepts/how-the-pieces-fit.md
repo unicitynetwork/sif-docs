@@ -222,25 +222,39 @@ rule.**
 There is **no filesystem watcher.** Reload is driven two ways, both funnelling
 through one writer so they cannot disagree:
 
-1. **A timer.** `hot_reload_rules` (`crates/semanticd/src/app.rs`) ticks every
+1. **A timer.** `hot_reload_runtime` (`crates/semanticd/src/app.rs`) ticks every
    `rules.reload_interval_secs` — **30 seconds** in `config.demo.toml`.
 2. **Redis pub/sub.** `redis_subscriber.rs` triggers the same path on a
    message, so with Redis configured the change is near-immediate.
 
-Each pass calls `rules_compose::compose_and_store`, which:
+Each pass calls `ManageState::reload_runtime_store`, which recomposes the rules
+(`rules_compose::compose_and_store`) and then republishes the policies against
+them. Composition:
 
 - reads the file rulesets **and** the database,
 - composes them per tenant,
 - compiles,
 - and swaps the whole store atomically (`replace_all`).
 
-Two safety behaviours are deliberate and worth knowing:
+**Rules and policies are published as one generation, not two.** The compiled
+rules and the resolved policies that select them are swapped together
+(`PolicyStore::replace_all_with_rules`), and a request pins the pair it started
+with (`RuntimeSnapshot`). So a request never sees new policies selecting rules
+that have not landed yet, or old policies against a corpus that has already
+moved — and a long request cannot observe a reload happening underneath it.
 
-- **A ruleset that fails to compile fails the tenant's whole composition:
-  nothing saved since the last good composition takes effect, and the previous
-  store keeps serving.** That is what the compile status on the ruleset rows
-  is for — and it is the tenant's status, stamped on every row at once,
-  because the composition is what failed, not one ruleset.
+Three safety behaviours are deliberate and worth knowing:
+
+- **A tenant whose rules fail to compile does not stop anyone else's reload.**
+  The swap still happens for every other tenant. The failing tenant keeps the
+  slice it had (status `Stale`), or, if it never had one, reads the shared
+  baseline (status `BaselineFallback`) — never a neighbour's rules. Either way
+  its rules read as saved and enabled while screening nothing new, which is
+  exactly the silent failure the product exists to prevent, so the status is
+  recorded per tenant and surfaced on the ruleset rows.
+- **The baseline is the exception.** If the baseline itself fails to compile,
+  the whole swap fails and the previous generation keeps serving — stale beats
+  empty.
 - **If the database is unreachable, the previous snapshot is kept** rather
   than reverting to files alone. The code comments note this replaced an
   earlier behaviour that silently discarded database customisation on every
