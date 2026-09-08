@@ -11,6 +11,21 @@ Each release entry documents what changed, with attention to anything an operato
 
 Items in flight that have not yet shipped.
 
+**Added — endpoint revocation and the enrolment-token lifecycle.**
+
+`POST /manage/endpoints/{id}/revoke` permanently refuses an endpoint's
+credential while preserving its history and evidence. The
+`/manage/enrolment-tokens` API now supports listing token metadata with `GET`
+and cancelling an unused token with `DELETE /{id}`. Token secrets are never
+returned by the listing API, and a used token cannot be cancelled. These
+operations require `endpoint:manage` and are audit-logged.
+
+**Removed — `POST /manage/endpoints/tokens`.**
+Read this before upgrading: a caller using it gets a 404.
+
+Mint enrolment tokens at `POST /manage/enrolment-tokens` instead. The request
+and response format are unchanged.
+
 **Changed — rules and policies are now published as one atomic generation.**
 
 A reload used to swap the compiled rules and the resolved policies separately.
