@@ -57,6 +57,7 @@ so a rule is addressable on its own at `/manage/rules/{id}` — but there is no
 | `GET` | `/manage/rulesets/{ruleset_id}/rules` | List rules in a ruleset |
 | `POST` | `/manage/rulesets/{ruleset_id}/rules` | Author a new rule into a ruleset |
 | `PUT` | `/manage/rulesets/{ruleset_id}/rules` | Replace which rules it holds, ordered |
+| `GET` | `/manage/rules` | The whole library — every rule, in a ruleset or not |
 | `GET` | `/manage/rules/{id}` | Get a rule directly by ID |
 | `PATCH` | `/manage/rules/{id}` | Update a rule |
 | `DELETE` | `/manage/rules/{id}` | Delete a rule |
@@ -86,6 +87,13 @@ is copied and upstream fixes keep arriving.
 
 `POST` to the same path is a different verb: it *authors a new rule* and adds it.
 Use `PUT` for a rule that already exists, and `POST` for one that does not.
+
+Taking a rule out of its **last** ruleset does not delete it: the rule is still
+there, still owns its id, and is simply held by nothing. `GET /manage/rules`
+lists it — that endpoint ignores membership, which is what every per-ruleset
+listing cannot do — with `"ruleset_id": null` saying so. Put it back with the
+`PUT` above, or delete it with `DELETE /manage/rules/{id}`, which is only
+accepted once no ruleset holds it.
 
 ### Cloning a ruleset
 
