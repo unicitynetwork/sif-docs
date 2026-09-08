@@ -48,6 +48,14 @@ tenant's ruleset rows.
 The baseline is still all-or-nothing: if it fails to compile, the whole swap is
 abandoned and the previous generation keeps serving. Stale beats empty.
 
+**Changed — the endpoint inventory API is now paginated.**
+Read this before upgrading: `GET /manage/endpoints` now returns a
+`{ data, page }` envelope rather than a bare array.
+
+The endpoint list supports bounded pagination, filtering, and stable sorting.
+Use `GET /manage/endpoints/{id}` to retrieve one endpoint directly. Existing
+callers of the list route must read endpoint records from the `data` field.
+
 **Changed — the `409` for a duplicate policy names the ID, not the name.**
 
 Creating a policy whose `policy_id` is taken returned `policy '<x>' already
