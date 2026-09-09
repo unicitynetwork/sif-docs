@@ -11,6 +11,24 @@ Each release entry documents what changed, with attention to anything an operato
 
 Items in flight that have not yet shipped.
 
+**Added — `ml_detector_ids` on `GET /manage/detectors`, and `ml_model` rules
+no longer switch a policy's ML off.**
+
+The classifier detector ids an `ml_model` rule's `match.model` may name:
+`prompt_injection_ml` and `jailbreak_ml`, nothing else. The rule editor's
+model menu was filled from `GET /manage/models`, which lists model
+*artefacts* — `prompt_injection_v1` — and the artefact is not the name that
+binds: a rule authored from that menu matched no detector, never fired, and
+narrowed the policy's classifier set to nothing behind it, so adding "ML
+coverage" removed all of it. The gate now narrows only when a named model
+reaches a registered classifier, so a rule naming anything else takes
+nothing away. `harmful_content_ml` is not on the list: it runs
+detector-owned, and no rule can gate it.
+
+Read this before upgrading: **rules already authored against artefact names
+stay dead** — the fix repairs authoring, not existing rows. Re-author them
+with the detector id from the corrected dropdown.
+
 **Added — endpoint revocation and the enrolment-token lifecycle.**
 
 `POST /manage/endpoints/{id}/revoke` permanently refuses an endpoint's
