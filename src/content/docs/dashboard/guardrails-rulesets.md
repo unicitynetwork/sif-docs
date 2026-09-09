@@ -152,8 +152,9 @@ from. That form asks which of your rulesets it goes in, because a rule
 is created into one; if none of them is the right home, **Start a new ruleset**
 is on that same screen, so you do not have to leave and lose the draft.
 
-A rule carries no action of its own, so there is nothing to override there — the
-policy's thresholds turn a score into flag or block.
+A rule may also carry endpoint classification: an `action` and the corpora in
+`applies_to`. Variants inherit those fields when they omit them, or tighten the
+action and add corpora when they declare both.
 
 ## Built-in rulesets
 

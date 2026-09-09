@@ -88,6 +88,21 @@ is copied and upstream fixes keep arriving.
 `POST` to the same path is a different verb: it *authors a new rule* and adds it.
 Use `PUT` for a rule that already exists, and `POST` for one that does not.
 
+Rule create and update bodies may include `action` (`allow`, `flag`, `ask`, or
+`block`) and `applies_to` (one or more of `prompt`, `tool_result`,
+`generated_code`, `command`, or `tool_call`). These fields classify rules for
+endpoint artefacts. They must either both be present or both be absent. On
+`PATCH`, omitting them leaves the classification unchanged; sending
+`{"action": null, "applies_to": []}` clears it. A variant with no directly
+declared classification inherits from the rule it derives from.
+
+Rule reads return the values declared directly on that rule. Consequently an
+inheriting variant returns `"action": null` and `"applies_to": []`, even
+though its effective classification is resolved from its lineage when the rule
+is flattened or compiled. Reusing an existing `rule_id` in another ruleset must
+describe the same rule, including its action and corpora; use a variant when the
+second ruleset needs stricter values.
+
 Taking a rule out of its **last** ruleset does not delete it: the rule is still
 there, still owns its id, and is simply held by nothing. `GET /manage/rules`
 lists it — that endpoint ignores membership, which is what every per-ruleset
@@ -251,7 +266,8 @@ more than one.
       "rule_id": "pii-fin-002",
       "score": 0.95,
       "severity": "critical",
-      "action": null,
+      "action": "block",
+      "applies_to": ["prompt", "tool_call"],
       "enabled": true,
       "defined_by": "pii-detection",
       "tightened_by": ["acme-tighten"]
@@ -268,10 +284,11 @@ actually run — the guard drops the rest, but they stay in `rules` with
 fact from one that is absent.
 
 `defined_by` names the ruleset the rule's pattern came from; `tightened_by`
-names, in attachment order, those whose copy of the id made it stricter, and is
-empty in the common case. `action` is `null` for every rule stored in the
-database — the `rules` table has no `action` column, so there is nothing for the
-merge to take a maximum of.
+names, in attachment order, those whose occurrence made it stricter, and is
+empty in the common case. `action` is the strictest effective action and
+`applies_to` is the union of effective corpora after resolving variant
+inheritance and ruleset overlap. `action` remains `null` only when no occurrence
+has edge classification.
 
 A **variant** — a rule that tightens another, holding its own scalars and
 inheriting the other's pattern — merges into the rule it tightens rather than

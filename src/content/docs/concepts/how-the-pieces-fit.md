@@ -294,15 +294,19 @@ The one thing they would lose is their own seat at the policy table: today
 `pii_regex` can hold its own weight and stage, and as rules they would inherit
 the rule engine's.
 
-### The management API does not expose a rule's action
+### Edge classification in the management API
 
-`RuleResponse` (`semd-manage/src/dto.rs:163`) returns `id`, `rule_id`,
-`ruleset_id`, `name`, `category`, `severity`, `enabled`, `match_spec`,
-`score`, `tags` and `description` — **but not `action`.**
+Rule create, update and read responses carry `action` and `applies_to` for the
+edge path. Both may be omitted for a SIF-only rule. An edge-classified rule must
+provide an action and at least one corpus; the API refuses a half-classified
+rule instead of guessing either value. Dashboard editing controls are a
+separate UI concern.
 
-So the dashboard cannot show what a rule is authored to do. Anything it
-displays as an "action" is inferred from the policy's thresholds, which
-describes the *central* path only and says nothing about the edge.
+A variant may omit both fields and inherit its root's classification. If it
+declares its own classification, the effective action is the stricter one and
+the effective corpora are the union across the lineage. A variant therefore
+cannot loosen the rule it derives from, including when its root is not attached
+to the same policy.
 
 ### There is no detector registry
 
