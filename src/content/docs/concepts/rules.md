@@ -60,7 +60,7 @@ rules:
 | `keywords` | `keywords`, `mode`, `case_insensitive` | `rule_engine` |
 | `composite` | nested `conditions` plus a `mode` | `rule_engine` |
 | `transform_then_match` | `transforms`, then a nested match | `rule_engine` |
-| `semantic_similarity` | an embedding comparison | `rule_engine` |
+| `semantic_similarity` | an embedding comparison | **refused** — no evaluator exists in the engine |
 | `ml_model` | `model` plus the `threshold` it must reach | the named classifier |
 | `yara` | a YARA source string | the YARA detector |
 

@@ -111,7 +111,7 @@ rules:
 | `keywords` | `keywords`, `mode`, `case_insensitive` |
 | `composite` | nested `conditions` + `mode` |
 | `transform_then_match` | `transforms`, then another match |
-| `semantic_similarity` | an embedding comparison |
+| `semantic_similarity` | an embedding comparison — **refused at authoring**: no evaluator exists in the engine |
 
 So **"let a user type a regex or a keyword list and have it checked" is
 already built.** It is a rule. If that is not discoverable in the console,
