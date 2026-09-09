@@ -77,10 +77,13 @@ is worth seeing wherever you are looking.
 Below the detail is the ruleset's own rule table — every rule it holds, off
 last and then by score — with the verbs that change what is in it:
 
-- **Add an existing rule…** puts a rule that already exists somewhere else into
-  this one. It leads, and is the only filled button here: a rule is a shared
-  object, so reusing one keeps it a single rule that goes on receiving the
-  pattern fixes we ship. See [Reusing a rule](#reusing-a-rule) below.
+- **Add an existing rule…** puts a rule that already exists into this one. It
+  leads, and is the only filled button here: a rule is a shared object, so
+  reusing one keeps it a single rule that goes on receiving the pattern fixes we
+  ship. The list is grouped by where each rule comes from, and rules that come
+  from nowhere — the ones a **Remove from this ruleset** left in no ruleset at
+  all — are offered first, under **In no ruleset**. See
+  [Reusing a rule](#reusing-a-rule) below.
 - **Create a rule** opens the New rule form with this ruleset already chosen.
   It is named for what it does — it writes a new rule, and is not a shorthand
   for the add above.

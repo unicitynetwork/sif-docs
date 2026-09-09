@@ -21,10 +21,16 @@ enabling, deleting — is [Guardrails › Rulesets](guardrails-rulesets.md).
 | Turned off | The rest of the loaded rules |
 | Customised | Rules in rulesets you authored, rather than built-in ones |
 
-**"In force" means the rule can fire, which needs two things**: the rule itself
-enabled, *and* the ruleset it lives in enabled. The engine drops a disabled ruleset
-whole, so a rule that is on inside a ruleset that is off cannot fire. The row says
+**"On" means nothing is switched off over the rule**: the rule itself enabled,
+*and* no ruleset holding it disabled. The engine drops a disabled ruleset whole,
+so a rule that is on inside a ruleset that is off cannot fire. The row says
 `Off` in that case, and its tooltip names the ruleset as the reason.
+
+**A rule *no* ruleset holds is not that case.** There is no ruleset switched off
+over it — only its own switch — so the row says `On` once you enable it, which is
+what the server stores. Nothing runs it until you put it in a ruleset: the dot
+beside the word marks that, the tooltip says it, and the row's ruleset cell reads
+**In no ruleset**.
 
 This matters when you copy a ruleset on the **New ruleset** page in order to modify
 it: if you leave the original enabled, both run, and detections are counted twice.
@@ -32,7 +38,7 @@ it: if you leave the original enabled, both run, and detections are counted twic
 ## The list
 
 Ordered so that what can fire comes first, then by score — the caption says "off
-rules last, then by score". Filter chips narrow to all, in force, off or built-in.
+rules last, then by score". Filter chips narrow to all, on, off or built-in.
 The chips and the counters agree about what "on" means.
 
 ## Narrowing to one ruleset
