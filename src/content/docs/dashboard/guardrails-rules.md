@@ -108,6 +108,16 @@ and explaining that is a screen's worth of work. Without `rules:author` the cont
 is disabled and says which capability it wants — it is not reachable by keyboard
 either, so you cannot land on a form that will refuse you at the end.
 
+Two controls classify the rule for machines. **Action** is what a machine does on a
+match: allow, flag, ask or block. **Applies to** is which inputs the rule is matched
+against: prompt, tool result, generated code, command or tool call. Codewall requires
+both, and severity never decides the action — a critical rule can be `ask`. SIF leaves
+both optional; the central engine scores without them. Pressing the chosen action again
+clears both.
+
+**Check pattern** asks the server whether the pattern compiles, before anything is saved.
+A refusal names the pattern and the column it failed at.
+
 ## Capabilities
 
 Reading needs `rules:read`. Enabling or disabling a rule in one of your own
