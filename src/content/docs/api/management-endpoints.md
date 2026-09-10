@@ -63,6 +63,43 @@ so a rule is addressable on its own at `/manage/rules/{id}` — but there is no
 | `DELETE` | `/manage/rules/{id}` | Delete a rule |
 | `POST` | `/manage/rules/{id}/test` | Run one probe against this rule alone |
 | `GET` | `/manage/rules/stats` | Aggregate rule statistics |
+| `POST` | `/manage/policies/validate-pattern` | Validate a rule match specification without saving it |
+
+### Validate a pattern without saving
+
+`POST /manage/policies/validate-pattern` takes the same `match_spec` and
+`score` accepted when a rule is created or updated:
+
+```json
+{
+  "match_spec": {
+    "type": "regex",
+    "patterns": ["ignore.*instructions"]
+  },
+  "score": 0.8
+}
+```
+
+The response is `200` for both valid and invalid specifications because the
+validation result is the requested resource. An invalid regex includes its
+JSON Pointer and its position within that pattern when available:
+
+```json
+{
+  "valid": false,
+  "error": "Invalid regex '[invalid': regex parse error…",
+  "position": {
+    "path": "/match_spec/patterns/0",
+    "offset": 0,
+    "line": 1,
+    "column": 1
+  }
+}
+```
+
+Malformed request JSON still receives the ordinary `400` or `422`, and callers
+without `rules:author` receive `403` before the body is parsed. The endpoint
+does not write a rule, recompile a ruleset, or change the active policy.
 
 ### Membership is its own verb
 
