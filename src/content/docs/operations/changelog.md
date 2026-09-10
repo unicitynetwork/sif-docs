@@ -74,6 +74,18 @@ The endpoint list supports bounded pagination, filtering, and stable sorting.
 Use `GET /manage/endpoints/{id}` to retrieve one endpoint directly. Existing
 callers of the list route must read endpoint records from the `data` field.
 
+Endpoint list and detail records also include server-derived `sync_status` and
+`health_status` fields. Sync is evaluated against the currently published edge
+artefact; health incorporates revocation, chain divergence, gaps and missed
+polls. Sync precedence is no published artefact, rejection of the current
+target, never synced, current, then behind. Health precedence is chain
+equivocation, revoked, chain gap, offline, then healthy.
+
+Codewall reports an endpoint offline after two poll intervals plus the maximum
+60-second long-poll hold by default. An explicit
+`codewall.endpoint_offline_after_seconds` must exceed one complete long-poll
+request-to-request cadence.
+
 **Changed — the `409` for a duplicate policy names the ID, not the name.**
 
 Creating a policy whose `policy_id` is taken returned `policy '<x>' already
