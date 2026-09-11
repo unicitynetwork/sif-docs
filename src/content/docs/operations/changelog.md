@@ -11,23 +11,23 @@ Each release entry documents what changed, with attention to anything an operato
 
 Items in flight that have not yet shipped.
 
-**Added — `ml_detector_ids` on `GET /manage/detectors`, and `ml_model` rules
-no longer switch a policy's ML off.**
+**Added — `ml_detector_ids` on `GET /manage/detectors`; an `ml_model` rule
+names a model and that model runs, credited by rule id.**
 
 The classifier detector ids an `ml_model` rule's `match.model` may name:
-`prompt_injection_ml` and `jailbreak_ml`, nothing else. The rule editor's
-model menu was filled from `GET /manage/models`, which lists model
-*artefacts* — `prompt_injection_v1` — and the artefact is not the name that
-binds: a rule authored from that menu matched no detector, never fired, and
-narrowed the policy's classifier set to nothing behind it, so adding "ML
-coverage" removed all of it. The gate now narrows only when a named model
-reaches a registered classifier, so a rule naming anything else takes
-nothing away. `harmful_content_ml` is not on the list: it runs
-detector-owned, and no rule can gate it.
-
-Read this before upgrading: **rules already authored against artefact names
-stay dead** — the fix repairs authoring, not existing rows. Re-author them
-with the detector id from the corrected dropdown.
+`prompt_injection_ml` and `jailbreak_ml`, nothing else — now listed on
+`GET /manage/detectors` and offered by the rule editor's model menu, which
+was previously filled from `GET /manage/models`. That endpoint lists model
+*artefacts* — `prompt_injection_v1` — and an artefact-named rule matched no
+detector, never fired, and narrowed the policy's classifier set to nothing
+behind it, so adding "ML coverage" silently removed all of it (issue #311).
+Both halves are fixed: the gate narrows only when a named model reaches a
+registered classifier, and the manifest artefact names of the two
+classifiers (`prompt_injection_v1`, `jailbreak_v1`) are accepted and mapped
+onto the detectors that run them — so rules already authored against
+artefact names fire as authored, at the rule's own threshold and credited
+by rule id, with no re-authoring. `harmful_content_ml` is not on the list:
+it runs detector-owned, and no rule can gate it.
 
 **Added — endpoint revocation and the enrolment-token lifecycle.**
 

@@ -65,12 +65,16 @@ rules:
 | `yara` | a YARA source string | the YARA detector |
 
 `match.model` names the **classifier detector** — `prompt_injection_ml`,
-`jailbreak_ml` — and not the model artefact in `models/manifest.json`, which is
-`prompt_injection_v1` and binds to nothing. The rule editor's dropdown offers
-the detector ids; a rule authored against an artefact name matches no detector
-and never fires. `harmful_content_ml` is not nameable either: it runs
-detector-owned — the policy gets its detections whenever the detector is
-registered, and no rule can gate them.
+`jailbreak_ml`. The model *artefact* name from `models/manifest.json`
+(`prompt_injection_v1`, `jailbreak_v1`) also binds: it is mapped onto the
+detector that runs it, so rules authored against the artefact list before
+the dropdown taught detector ids (issue #311) fire as authored. The rule
+editor's dropdown offers the detector ids. Anything else — the internal
+registry key, an artefact no classifier serves, a typo — matches no detector
+and never fires; the daemon logs an error naming the rule at boot.
+`harmful_content_ml` is not nameable either: it runs detector-owned — the
+policy gets its detections whenever the detector is registered, and no rule
+can gate them.
 
 `match` itself is optional. A second ruleset naming a rule id that is already
 defined may leave it out and inherit the pattern — see
