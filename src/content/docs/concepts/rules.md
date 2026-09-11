@@ -72,9 +72,18 @@ the dropdown taught detector ids (issue #311) fire as authored. The rule
 editor's dropdown offers the detector ids. Anything else — the internal
 registry key, an artefact no classifier serves, a typo — matches no detector
 and never fires; the daemon logs an error naming the rule at boot.
-`harmful_content_ml` is not nameable either: it runs detector-owned — the
-policy gets its detections whenever the detector is registered, and no rule
-can gate them.
+`harmful_content_ml` is not nameable at all: it consults no rule store.
+
+An `ml_model` rule **adds** a way of reporting a model's score. It never
+takes a detector away. Every registered classifier runs whether or not a
+rule names it — they are detector-owned, like the YARA detector and the DLP
+scanner — so attaching a rule for prompt injection does not switch jailbreak
+off. Use the policy's `stages` to choose which detectors a policy runs.
+
+What the rule does own is **sensitivity**: for the policies that attach it,
+the model reports through the rule at the rule's `threshold`, credited by
+rule id, and the detector's own `min_confidence` has no say. A rule
+authored at 0.9 therefore silences that model below 0.9 on those policies.
 
 `match` itself is optional. A second ruleset naming a rule id that is already
 defined may leave it out and inherit the pattern — see

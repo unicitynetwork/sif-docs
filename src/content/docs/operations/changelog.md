@@ -14,20 +14,33 @@ Items in flight that have not yet shipped.
 **Added — `ml_detector_ids` on `GET /manage/detectors`; an `ml_model` rule
 names a model and that model runs, credited by rule id.**
 
-The classifier detector ids an `ml_model` rule's `match.model` may name:
-`prompt_injection_ml` and `jailbreak_ml`, nothing else — now listed on
+The canonical classifier detector ids an `ml_model` rule's `match.model` may
+name — `prompt_injection_ml` and `jailbreak_ml` — are now listed on
 `GET /manage/detectors` and offered by the rule editor's model menu, which
 was previously filled from `GET /manage/models`. That endpoint lists model
 *artefacts* — `prompt_injection_v1` — and an artefact-named rule matched no
 detector, never fired, and narrowed the policy's classifier set to nothing
 behind it, so adding "ML coverage" silently removed all of it (issue #311).
-Both halves are fixed: the gate narrows only when a named model reaches a
-registered classifier, and the manifest artefact names of the two
-classifiers (`prompt_injection_v1`, `jailbreak_v1`) are accepted and mapped
-onto the detectors that run them — so rules already authored against
-artefact names fire as authored, at the rule's own threshold and credited
-by rule id, with no re-authoring. `harmful_content_ml` is not on the list:
-it runs detector-owned, and no rule can gate it.
+Both halves are fixed. The manifest artefact names of the two classifiers
+(`prompt_injection_v1`, `jailbreak_v1`) are accepted and mapped onto the
+detectors that run them, so rules already authored against artefact names
+fire as authored, at the rule's own threshold and credited by rule id, with
+no re-authoring. And an `ml_model` rule no longer narrows anything: the
+classifiers are detector-owned, like the YARA detector and the DLP scanner,
+so **adding a rule can no longer take a classifier away**. To run only some
+classifiers on a policy, name them in its `stages`, which is the control
+built for that and the one you can read back. `harmful_content_ml` is not
+nameable at all: it runs detector-owned and consults no rule store.
+
+Read this before upgrading: **an artefact-named rule starts governing its
+model's sensitivity.** Until now those rows bound to nothing, so the
+detector's own `min_confidence` (0.1) decided. Now the rule's `threshold`
+does, for the policies that attach it — a rule authored at 0.9 means that
+model reports nothing below 0.9 there, where it previously reported from
+0.1. That is the documented behaviour of every `ml_model` rule ("the rule
+owns its sensitivity"); it is new only for these rows, because they were
+inert before. Check the `threshold` on any `ml_model` rule you already have
+and re-author it if it is stricter than you intended.
 
 **Added — endpoint revocation and the enrolment-token lifecycle.**
 
