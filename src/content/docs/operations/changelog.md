@@ -11,6 +11,38 @@ Each release entry documents what changed, with attention to anything an operato
 
 Items in flight that have not yet shipped.
 
+**Changed — Codewall saves create drafts; Publish is the one fleet-wide act.**
+
+Read this before upgrading: **a console save no longer pushes to the machines.**
+On the Codewall build, `policies.auto_publish` is off for API edits — saving a
+policy, toggling a rule or attaching a ruleset records the change and nothing
+else. `POST /manage/policies/{id}/publish` pushes it: a pending draft goes out
+as-is, and when only the rules moved, the publish mints a new version of the
+same document so the fleet has something to download. Until then the machines
+enforce exactly what they enforced before the save.
+
+Why it is worth changing: a rule toggle changed what a publish *would* compile
+but minted no version, so nothing reached the machines — the description field
+was the only lever that pushed a rules change, and no screen said so. The
+policy list now carries `unpublished_changes` (a draft is ahead, or the rules
+drifted from what the running artefact was compiled from), the console shows a
+Publish button on that signal, and `GET /manage/policies/{id}/preview`
+answers "what would Publish change?" — the diff against what the machines run,
+the rules that stay central, and the rules that would make the publish fail.
+A publish is still refused outright while any rule cannot compile to the edge,
+and it is refused **before** a version is minted: a refused publish leaves no
+row behind, however many times it is retried, and the error names the rules to
+fix rather than sending you to the server log.
+
+The Publish button names the version it will create, so a rules-only publish
+says up front that it is minting one. Toggling a **built-in** rule says what it
+has just done to everyone: built-in packs are shared, so every organization's
+default policy now shows unpublished changes and each organization's own admin
+publishes it — the toggle does not push it for them.
+
+SIF deployments are unchanged: no artefact, no drift, `unpublished_changes`
+reads `draft_ahead` there.
+
 **Added — `ml_detector_ids` on `GET /manage/detectors`; an `ml_model` rule
 names a model and that model runs, credited by rule id.**
 
