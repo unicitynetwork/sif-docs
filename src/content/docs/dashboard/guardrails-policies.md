@@ -67,6 +67,11 @@ publish.
 Publishing an earlier version is how you roll back. It does not delete anything —
 the version you were on becomes superseded.
 
+In Codewall, publishing also makes that version available to endpoints. It does
+not change which machines target the policy: choose an endpoint's policy from
+its **Fleet › Endpoints** detail screen. Endpoints with no explicit assignment
+follow the tenant default.
+
 ## The dirty bar
 
 While the editor differs from the saved policy, a bar names which fields have

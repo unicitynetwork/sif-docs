@@ -120,6 +120,11 @@ Every gateway boots with at least one policy named `default`. Since migration 03
 
 For specific applications, **don't edit the default**. Instead, create a named policy and bind your keys to it. This keeps the default predictable for new keys.
 
+Codewall fleet assignment is separate from guard-call resolution. Each endpoint
+may target one published policy; an endpoint without an explicit assignment
+follows the tenant default. Publishing a named policy makes its artefact
+available, but does not assign that policy to a machine.
+
 ## Editing
 
 Edits take effect on the next request. There is no propagation delay and no restart.
