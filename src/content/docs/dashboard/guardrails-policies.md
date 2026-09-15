@@ -24,9 +24,14 @@ Three settings, and they are the first thing to get right:
 | `monitor` | Detections are recorded; nothing is blocked |
 | `enforce` | Detections act — blocked, flagged or modified per the thresholds |
 
-Mode is identity-level: changing it does not mint a new version. Move a policy to
-`monitor` first when you are tuning it, watch [Activity › Threats](activity-threats.md)
-for what it *would* have done, then promote it.
+Mode is part of a policy's versioned content: changing it mints a new draft
+version and takes effect only when you publish that version. The policy page
+shows both — the mode in force, and the one staged in a draft beside it.
+
+Move a policy to `monitor` first when you are tuning it, publish that, watch
+[Activity › Threats](activity-threats.md) for what it *would* have done, then
+promote it. Rolling back is a publish of an earlier version, and it restores
+that version's mode along with its content.
 
 ## Thresholds
 
