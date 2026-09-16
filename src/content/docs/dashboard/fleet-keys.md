@@ -102,11 +102,39 @@ A key bound to a class is **class-led**: the class's policies govern every
 call the key makes, and the class — not this screen — is where you change
 them.
 
-## Handing a key to the tester
+## Verifying a key
 
-The row menu can send a key straight to [Guardrails › Tester](guardrails-tester.md).
-The tester holds it in `sessionStorage` only, so a data-plane credential does not
-outlive the browser tab or get inherited by the next person at a shared desk.
+`/fleet/keys/verify` proves that a particular secret works end to end. It
+deliberately differs from [Guardrails › Test](guardrails-test.md), which needs no
+credential: this screen sends a **real** data-plane request, so it consumes the
+key's rate limit and the decision appears in Activity, exactly as it would for an
+agent holding the key. The result reports the HTTP outcome, the verdict, the
+latency and the request id, with **View in Activity** linking to the audit entry
+that request produced.
+
+Under **Policy routing**, leave **Use the key's agent class** selected for a
+class-led key. For a caller-led key, choose the published policy the request
+should name. Policies that exist only as drafts are shown but disabled: the
+runtime cannot route a real request to an unpublished version.
+
+It is a detail route of Keys rather than a tab of its own: there is nothing there
+to browse.
+
+### Getting a key there
+
+The one-time secret view has **Copy & verify key**, which copies the secret and
+carries it straight to the verification route, and **Copy key**, which only
+copies it. **Done** asks you to acknowledge that you saved the secret before it
+closes the view; the secret is not shown again.
+
+A key that is already gone cannot be handed anywhere — the server stores only a
+hash — so **Verify a key you hold** on this screen opens the verification route
+with an empty paste field.
+
+Verification holds the plaintext in `sessionStorage` and page memory only. The
+real request is sent imperatively so the credential never becomes a React Query
+mutation variable. It therefore does not enter a query cache, outlive the
+browser tab, or get inherited by the next person at a shared desk.
 
 ## Capabilities
 

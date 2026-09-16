@@ -5,7 +5,8 @@ sidebar:
   order: 1
 ---
 
-The console is organised into six sections across the top. There is no sidebar:
+The console is organised into six operational sections across the top. A
+seventh **Demo** section appears only after `?demo=1` arms it for the tab. There is no sidebar:
 you pick a section, then a screen within it from the tab strip under the section
 heading.
 
@@ -18,10 +19,11 @@ link to from a runbook — including filtered ones.
 |---|---|---|
 | [Home](home.md) | — | What needs your attention, and the last 24 hours at a glance |
 | [Fleet](fleet-agents.md) | Agents, Keys, System | The machines calling the guard, and the credentials they hold |
-| [Guardrails](guardrails-policies.md) | Policies, Rules, Rulesets, Detectors, Tester | What SIF checks, and what it does when a check fires |
+| [Guardrails](guardrails-policies.md) | Policies, Test, Rulesets, Rules, Detectors | What SIF checks, and what it does when a check fires |
 | [Activity](activity-threats.md) | Threats, Audit | Every decision the firewall made, and the audit trail behind it |
 | [Access](access-users.md) | Users, Identity, Tenants | Who can use this console, how they sign in, and the tenants on the platform |
 | [Reports](reports.md) | — | Not yet designed; the audit log does this work today |
+| Demo (demo mode only) | Overview, Try SIF, Payments, Network | A guided, non-operational product demonstration |
 
 ## Screens
 
@@ -30,6 +32,7 @@ link to from a runbook — including filtered ones.
 | Home | `/` | [Home](home.md) |
 | Fleet › Agents | `/fleet/agents` | [Agents](fleet-agents.md) |
 | Fleet › Keys | `/fleet/keys` | [Keys](fleet-keys.md) |
+| — verify a key | `/fleet/keys/verify` | [Keys](fleet-keys.md#verifying-a-key) |
 | Fleet › System | `/fleet/system` | [System](fleet-system.md) |
 | Guardrails › Policies | `/guardrails/policies` | [Policies](guardrails-policies.md) |
 | Guardrails › Rules | `/guardrails/rules` | [Rules](guardrails-rules.md) |
@@ -37,13 +40,17 @@ link to from a runbook — including filtered ones.
 | Guardrails › Rulesets | `/guardrails/rulesets` | [Rulesets](guardrails-rulesets.md) |
 | — a single ruleset | `/guardrails/rulesets?id={ruleset}` | [Rulesets](guardrails-rulesets.md) |
 | Guardrails › Detectors | `/guardrails/detectors` | [Detectors](guardrails-detectors.md) |
-| Guardrails › Tester | `/guardrails/tester` | [Tester](guardrails-tester.md) |
+| Guardrails › Test | `/guardrails/test` | [Test](guardrails-test.md) |
 | Activity › Threats | `/activity/threats` | [Threats](activity-threats.md) |
 | Activity › Audit | `/activity/audit` | [Audit](activity-audit.md) |
 | Access › Users | `/access/users` | [Users](access-users.md) |
 | Access › Identity | `/access/identity` | [Identity](access-identity.md) |
 | Access › Tenants | `/access/tenants` | [Tenants](access-tenants.md) |
 | Reports | `/reports` | [Reports](reports.md) |
+| Demo › Overview | `/demo/overview` | Demo-only screen (`?demo=1`) |
+| Demo › Try SIF | `/demo/try` | Demo-only live evaluation (`?demo=1`) |
+| Demo › Payments | `/demo/payments` | Demo-only screen (`?demo=1`) |
+| Demo › Network | `/demo/network` | Demo-only screen (`?demo=1`) |
 
 ## What you can see is what you can do
 
@@ -68,6 +75,7 @@ and the console is careful to make the right one.
 
 The console was reorganised into these six sections. The routes it used before
 (`/threats`, `/rules`, `/policies`, `/detectors`, `/settings`, `/identity`,
-`/admin`, `/developers`, `/platform`) all still resolve, and keep any query
-string you sent them with. A bookmark from the older layout will land in the
-right place.
+`/admin`, `/developers`, `/platform`, `/overview`, `/payments`, `/network`,
+and `/guardrails/tester`) all still
+resolve, and keep any query string you sent them with. A bookmark from the older
+layout will land in the right place.

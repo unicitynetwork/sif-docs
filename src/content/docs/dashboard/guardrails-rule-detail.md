@@ -46,9 +46,9 @@ disabling, editing and deleting live on the row menu in
 ## Testing it
 
 **Try it** puts a prompt through the live guard from this screen and says whether
-*this* rule fired, then what else caught it. It needs a guard API key — paste one
-on [Guardrails › Tester](guardrails-tester.md) and it is held in `sessionStorage`
-for the tab.
+*this* rule fired, then what else caught it. It runs on the management plane and
+needs no guard API key: the screen takes `rules:read`. To see what a whole policy
+would do with a prompt, use [Guardrails › Test](guardrails-test.md).
 
 ## Capabilities
 

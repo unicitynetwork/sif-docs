@@ -180,9 +180,10 @@ score.
 
 ## Check it before you trust it
 
-The **Try it** bench on the rule's own screen sends text through the live
-guard and tells you whether *this* rule fired. It needs a guard API key —
-paste one on **Guardrails › Tester** and it is held for the browser tab.
+The **Try it** bench on the rule's own screen sends text through the guard and
+tells you whether *this* rule fired. It runs on the management plane, so it
+needs no guard API key; to see what a whole policy would do with a prompt, use
+[Guardrails › Test](../dashboard/guardrails-test.md).
 
 Test both directions:
 
