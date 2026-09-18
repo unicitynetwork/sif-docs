@@ -11,6 +11,20 @@ Each release entry documents what changed, with attention to anything an operato
 
 Items in flight that have not yet shipped.
 
+**Added — an enrolment token carries the policy the machine joins on.**
+
+`POST /manage/enrolment-tokens` accepts `policy_id`, and the machine that
+redeems that token is assigned the policy as it enrols: it pulls that policy's
+artefact on its first poll instead of joining unassigned and depending on the
+tenant default until someone remembers to `PATCH /manage/endpoints/{id}`. Only
+the policy id is baked in, never a version, so the machine tracks the published
+version like any other targeted endpoint. Naming a policy requires
+`policy:write` — it is the same assignment that screen makes — and the policy
+must be published and unarchived, or the mint is refused. Omitting `policy_id`
+is unchanged: the endpoint enrols unassigned and follows the default. The
+console's **Enrol a machine** window now asks for the policy before it will
+mint.
+
 **Changed — Codewall saves create drafts; Publish is the one fleet-wide act.**
 
 Read this before upgrading: **a console save no longer pushes to the machines.**
