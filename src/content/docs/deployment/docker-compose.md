@@ -40,7 +40,7 @@ services:
       interval: 5s
 
   redis:
-    image: redis:7-alpine
+    image: redis:8-alpine
     volumes:
       - redisdata:/data
     healthcheck:
