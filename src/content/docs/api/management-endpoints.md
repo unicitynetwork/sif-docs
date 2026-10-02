@@ -540,6 +540,34 @@ There are deliberately no triage verbs — no mute, acknowledge, or delete. The 
 |---|---|---|
 | `POST` | `/manage/stats/reset` | Reset in-memory counters across the management API. Affects `/status`-style metrics, not persisted audit history. |
 
+## Codewall endpoint inventory
+
+`GET /manage/endpoints/{id}/inventory` is Codewall-only, tenant-scoped, and requires
+`endpoint:manage`. Alongside retained `data` rows and `staleness_threshold_hours`,
+it returns:
+
+```json
+"last_report": {
+  "received_at": "2026-09-17T12:00:00Z",
+  "snapshot_at": "2026-09-17T11:59:55Z",
+  "item_count": 0
+}
+```
+
+`last_report: null` means no report metadata has been recorded. Existing endpoints
+are not backfilled with invented timestamps. A non-null report with `item_count: 0`
+means an empty inventory snapshot was successfully received, not that collection
+has never run. `received_at` is the server's receipt time; `snapshot_at` is a client
+label, not an ordering or freshness authority. A stopped or failing collector does
+not refresh either value.
+
+Metadata and item updates commit together and are read from the same database
+snapshot. Historical item rows remain after omission, so `item_count` describes
+the last report and need not equal `data.length`. Omitted rows become stale using
+their existing `last_seen` rules. UI clients can display report freshness separately
+from retained item history. The endpoint screen groups the latest MCP observations
+by project and keeps previous observations separate.
+
 ## Errors
 
 | Status | When |
