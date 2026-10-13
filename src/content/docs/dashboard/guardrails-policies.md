@@ -77,6 +77,34 @@ not change which machines target the policy: choose an endpoint's policy from
 its **Fleet › Endpoints** detail screen. Endpoints with no explicit assignment
 follow the tenant default.
 
+## Central analysis setup
+
+In Codewall, **Central analysis** controls whether selected endpoint content is
+uploaded for asynchronous detection. Select **Original input** or **Fully
+redacted**, choose the corpora, then save and publish. **Keep evidence** controls
+retention separately. Fully redacted upload erases the input before analysis;
+central detectors cannot find secrets or signatures in the erased text.
+
+Publishing requires a content encryption keyring and a valid analysis runtime
+on the deployment. The server supplies the public key; policy authors do not
+enter keys. If the publish dialog reports a setup prerequisite, ask the
+deployment administrator to configure it, then reopen the dialog to retry.
+The published policy remains in force while publication is refused.
+
+Deployment administrators provision the persistent keyring with
+`scripts/provision-content-keyring.py`, mount it read-only, and configure
+`codewall.analysis.content_keys_file` (environment override:
+`SEMANTICD__CODEWALL__ANALYSIS__CONTENT_KEYS_FILE`). The Codewall staging workflow
+performs this provisioning. Preserve its private keys across deployments:
+published policies and queued content depend on them. The keyring belongs to
+the server deployment; it is separate from tenant receipt-signing keys.
+
+Runtime errors require checking the server's loaded detector configuration and
+model assets. See the repository's
+[central analysis deployment guide](https://github.com/unicitynetwork/semanticd/blob/main/docs/codewall-central-analysis-validation.md#staging-activation)
+for setup and endpoint validation. Successful publication alone does not prove
+that an endpoint is uploading or that analysis completes.
+
 ## The dirty bar
 
 While the editor differs from the saved policy, a bar names which fields have
