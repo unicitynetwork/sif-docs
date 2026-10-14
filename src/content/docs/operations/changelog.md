@@ -11,6 +11,19 @@ Each release entry documents what changed, with attention to anything an operato
 
 Items in flight that have not yet shipped.
 
+**Changed — the DLP scanner acts on a place or a company name only next to
+personal data.**
+
+The NER model reports places (Location) and companies (Organization). A lone
+mention ("What is the capital of France?", "I work at Unicity Networks") scores
+0.50: it is recorded, but below the default flag threshold, so it does not
+change the verdict. When the same text also names a person, an email, a phone
+number, an address, a date of birth, an SSN or a card number, the place or
+company scores 0.75 like an address and is redacted with the rest ("<PERSON> works
+at <ORGANIZATION> in <LOCATION>"). Before, both scored 0.60 and flagged
+any request that named a place, a company or a framework. A policy whose flag
+threshold is 0.5 or lower still acts on every mention.
+
 **Added — an enrolment token carries the policy the machine joins on.**
 
 `POST /manage/enrolment-tokens` accepts `policy_id`, and the machine that
