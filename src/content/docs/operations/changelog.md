@@ -11,6 +11,22 @@ Each release entry documents what changed, with attention to anything an operato
 
 Items in flight that have not yet shipped.
 
+**Changed — a rule pack added in a release reaches existing policies that
+run every shipped pack.**
+
+A policy's rulesets are fixed when its selection is set (at creation, by an
+operator, or at the first boot that finds it without one). Until now a pack
+added in a later release was mirrored into the database at boot and attached
+to no existing policy, so its rules matched and every match was discarded.
+At boot, a policy that holds every shipped pack that existed when its
+selection was last set now gets each pack shipped since, after its current
+last ruleset. A policy that leaves out an older shipped pack, holds only the
+tenant's own rulesets, or was emptied on purpose stays as it was set, and the
+boot log names each pack it does not hold. Detaching a pack this attached is
+kept across restarts. A pack counts as shipped from when it first holds a
+rule (`rulesets.first_rule_at`, new): a pack that ships empty is attached
+nowhere, and reaches these policies in the release that gives it a rule.
+
 **Changed — the harmful-content classifier runs only where a policy enables
 it.**
 
