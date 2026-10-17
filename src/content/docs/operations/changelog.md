@@ -11,6 +11,19 @@ Each release entry documents what changed, with attention to anything an operato
 
 Items in flight that have not yet shipped.
 
+**Changed — the harmful-content classifier runs only where a policy enables
+it.**
+
+`harmful_content_ml` is a prototype, and the shipped policies keep it off.
+Other detectors run unless a policy switches them off, and until now so did
+this one. A policy created through the API lists no detectors or only a few, so
+on any node with a `harmful_content` model, every such policy ran it and flagged
+ordinary text (6 of 15 benign Turkish sentences at 0.60–0.63 on staging). It now
+runs only for a policy with a `harmful_content_ml` entry that leaves `enabled`
+true, or a stage that names it. No shipped policy enables it, so nothing changes
+there. To keep it on for a stored policy that relied on the old behaviour, add
+`harmful_content_ml: {}` to its `detectors`.
+
 **Changed — the DLP scanner acts on a place or a company name only next to
 personal data.**
 
