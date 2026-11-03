@@ -73,6 +73,11 @@ Ten values, from `ErrorCode` via `ApiError::error_code()`:
 | `InternalError` | `500` | Unhandled exception, detector failure, or generic server-side error | Check the gateway logs; correlate with the `X-Request-Id` response header |
 | `ServiceUnavailable` | `503` | Dependency (Postgres / Redis / model) unreachable, or the gateway is shutting down | Retry with backoff; check dependency health |
 
+When a classifier inference pool is full, the Guard API returns `503 ServiceUnavailable` with
+`Retry-After: 1`. DLP NER overload falls back to regex-only detection with `ner_failed: true` in
+the detector metadata. Management preview and other service-unavailable responses do not
+necessarily carry a retry interval.
+
 > The `ApiError` enum distinguishes more cases internally (e.g. `BadRequest` vs `NotFound`, `Timeout` vs `Unavailable`), but the wire layer maps them all into the ten codes above via [`ApiError::error_code()`](https://github.com/unicitynetwork/semanticd/blob/main/crates/semd-api/src/error.rs).
 
 ## `/manage/*` error codes
@@ -94,7 +99,7 @@ than `/api/v1/*`'s, with a real `409 conflict` and a `502 bad_gateway` that
 | `database_error` | `500` | Underlying Postgres error |
 | `internal_error` | `500` | Generic server-side error |
 | `bad_gateway` | `502` | Upstream dependency unreachable or answered unusably |
-| `service_unavailable` | `503` | Process not in a shape that can serve safely |
+| `service_unavailable` | `503` | Process cannot serve now, including a full inference pool |
 
 > `415` and `422` are reached before the authorization check, because the
 > handler cannot extract the body until it parses. So a caller with no
