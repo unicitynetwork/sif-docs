@@ -26,6 +26,17 @@ to [Access › Users](access-users.md); health and version moved to
 | Expires | When it stops working, if it is time-limited |
 | Last used | When the guard last saw it |
 
+**Last used** records successful credential and tenant validation, including
+requests subsequently refused for missing permissions or exceeding their rate
+limit. Updates are coalesced over a minute and written in the background. A
+failed write is retried once; overload, persistent failure or a restart can
+still lose an observation. This is approximate activity metadata, not an audit
+record. Invalid, revoked, suspended and expired credentials do not update it.
+
+When creating a key, **Expires** accepts an optional date and time in your local
+timezone. A supplied expiry must be in the future; blank means never expires.
+Existing keys' expiry can still be changed or cleared through **Edit**.
+
 **Tier** shows `rate_limit_rpm`, not the policy tier — despite the header
 name, this column has nothing to do with policy resolution, and it stays
 fully in force for a classed key exactly as for a caller-led one. There is
