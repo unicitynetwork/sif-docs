@@ -70,10 +70,16 @@ Content-Type: application/json
 }
 ```
 
-No `Retry-After` header and no other field to key a backoff off of — retry
-with your own. See [Reference → API error codes](../reference/api-error-codes.md).
+A rate-limit response includes `Retry-After: 60`. See
+[Reference → API error codes](../reference/api-error-codes.md).
 
-A limit of `0` means unlimited. Use unlimited only for keys whose calling application has its own rate limit.
+A stored `null` limit means unlimited; zero and negative limits are rejected.
+On creation, choose `tier: "unlimited"` or omit both `tier` and `rate_limit_rpm`.
+To remove an existing limit, PATCH `rate_limit_rpm` to `null`.
+The dashboard defaults new keys to Free (100 rpm); direct API creation without
+a tier or explicit limit defaults to unlimited. Standard is 1,000 rpm and Premium
+is 10,000 rpm. An explicit positive limit overrides the tier on creation.
+Use unlimited only for keys whose calling application has its own rate limit.
 
 ## Audit attribution
 

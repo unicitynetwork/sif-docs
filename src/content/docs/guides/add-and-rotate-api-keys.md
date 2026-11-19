@@ -10,7 +10,7 @@ Every call to `/api/v1/guard` carries an API key. This page is the operator-side
 1. Open [Fleet › Keys](../dashboard/fleet-keys.md).
 2. Click **Create key** and fill in:
    - **Name** — a stable label. It appears in audit rows and rate-limit alerts. Use something like `support-bot-prod`, `eng-experiments`, `incident-bot`.
-   - **Rate limit (rpm)** — requests per minute. `0` means unlimited. Start with a low value (60 rpm) for a new key; raise it once the calling app's traffic shape is known.
+   - **Rate limit tier** — Free (100 rpm, the default), Standard (1,000 rpm), Premium (10,000 rpm), or Unlimited. To set a custom positive limit after creation, edit the key; a blank limit there means unlimited (`null` in PATCH requests). Zero and negative values are rejected.
    - **Expiry** — optional. Set it for short-lived integrations (e.g. a 7-day demo key) so the credential auto-revokes.
 3. Submit. The full secret is shown **once** on the success screen. Copy it now — it will never be shown again.
 
@@ -108,6 +108,7 @@ When a key exceeds its rate limit, `/api/v1/guard` returns:
 ```http
 HTTP/1.1 429 Too Many Requests
 Content-Type: application/json
+Retry-After: 60
 
 {
   "code": "RateLimited",
@@ -115,9 +116,9 @@ Content-Type: application/json
 }
 ```
 
-No `Retry-After` header, no `retry_after_ms`, no `limit_rpm` — there is
-nothing else in this response to key a backoff off of. Retry with your own
-backoff. See [Reference → API error codes](../reference/api-error-codes.md).
+The response includes `Retry-After: 60` (seconds). Wait at least that long
+before retrying. See [Reference → API error codes](../reference/api-error-codes.md)
+for the response format and rate-limit headers.
 
 ## Audit the key usage
 

@@ -68,7 +68,7 @@ Ten values, from `ErrorCode` via `ApiError::error_code()`:
 | `Unauthorized` | `401` | No `Authorization` / `X-API-Key` header, or the supplied key did not validate | Mint or rotate the key — see [Add and rotate API keys](../guides/add-and-rotate-api-keys.md) |
 | `ApiKeyExpired` | `401` | The API key's `expires_at` has passed | Rotate or reissue the key |
 | `Forbidden` | `403` | Authenticated but not permitted | Use a key with the right scope |
-| `RateLimited` | `429` | Per-key rate limit exceeded | Raise the key's `rate_limit_rpm` if persistent — there is no `retry_after_ms` to key a backoff off; retry with your own |
+| `RateLimited` | `429` | Per-key rate limit exceeded | Retry after the `Retry-After: 60` delay; review the key's `rate_limit_rpm` if persistent |
 | `PayloadTooLarge` | `413` | Body size exceeds `server.request_body_limit` | Send smaller messages or raise the limit ([Reference → config.toml](config-toml.md)) |
 | `InternalError` | `500` | Unhandled exception, detector failure, or generic server-side error | Check the gateway logs; correlate with the `X-Request-Id` response header |
 | `ServiceUnavailable` | `503` | Dependency (Postgres / Redis / model) unreachable, or the gateway is shutting down | Retry with backoff; check dependency health |
@@ -113,6 +113,7 @@ When a key exceeds `rate_limit_rpm` on `/api/v1/guard`:
 ```http
 HTTP/1.1 429 Too Many Requests
 Content-Type: application/json
+Retry-After: 60
 
 {
   "code": "RateLimited",
@@ -120,11 +121,11 @@ Content-Type: application/json
 }
 ```
 
-There is no `retry_after_ms` field and no `Retry-After` header —
-`ApiError::RateLimited` carries no extra data, and the rate-limiter
-middleware's own header-setting code runs only on the allowed path (the
-limit-exceeded path returns before reaching it). Retry with your own
-backoff. `/manage/*` has no rate limiting and no equivalent response.
+The response includes `Retry-After: 60` (seconds), but no `retry_after_ms`
+field. Successful limited requests include `X-RateLimit-Limit` and
+`X-RateLimit-Remaining`. Single and batch guard requests share the key's
+per-minute budget; each HTTP request counts once. `/manage/*` has no
+rate limiting and no equivalent response.
 
 ## WebSocket close codes
 
